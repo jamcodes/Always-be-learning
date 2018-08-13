@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+# env stuff
+build/
+buildvc/
+.vscode/
+pacificplusplus_code/
