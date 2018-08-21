@@ -1,6 +1,6 @@
 cmake_minimum_required( VERSION 3.1 )
 
-set( Project variant_fsm )
+set( Project naive_fsm )
 project( ${Project} )
 
 
