@@ -1,6 +1,6 @@
 cmake_minimum_required( VERSION 3.1 )
 
-set( Project naive_fsm )
+set( Project sml_fsm )
 project( ${Project} )
 
 
@@ -61,13 +61,15 @@ if( CMAKE_CXX_COMPILER_ID MATCHES "MSVC" )
     target_compile_options( Project_config INTERFACE /W4 /WX )
 else()
     if(CMAKE_BUILD_TYPE MATCHES Debug)
-      set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Og")
+      target_compile_options( Project_config INTERFACE
+        -Og
+      )
     endif()
     target_compile_options( Project_config INTERFACE
       -Wall
       -Wextra # reasonable and standard
       -Weffc++ # Warn about violations of Effective C++ style rules
-      -Wshadow # warn the user if a variable declaration shadows one from a parent context
+#      -Wshadow # warn the user if a variable declaration shadows one from a parent context
       -Wnon-virtual-dtor # warn the user if a class with virtual functions has a
                       # non-virtual destructor. This helps catch hard to track down memory errors
       -Wold-style-cast # warn for c-style casts

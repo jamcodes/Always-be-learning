@@ -3,6 +3,7 @@
 #include <variant>
 #include <optional>
 #include <type_traits>
+#include "Stopwatch/stopwatch.h"
 
 template<typename T>
 struct always_false : std::false_type { };
@@ -54,8 +55,6 @@ class Fsm
     // using EventVariant = typename Derived::EventVariant;
 
 public:
-    // template<typename Event>
-        // TODO: enable_if EventVariant can be assigned Event type
     constexpr void dispatch(const EventVariant& event)
     {
         auto fsm = derived();
@@ -83,8 +82,8 @@ private:
     constexpr const Derived& derived() const noexcept
         { return static_cast<const Derived&>(*this); }
 
-    constexpr decltype(auto) state() noexcept { return state_; }
-    constexpr const decltype(auto) state() const noexcept { return state_; }
+    constexpr auto& state() noexcept { return state_; }
+    constexpr const auto& state() const noexcept { return state_; }
 
     // template<typename Event>
     constexpr auto dispatch_event(const EventVariant& event) -> std::optional<StateVariant>
@@ -176,7 +175,7 @@ private:
     constexpr auto update() noexcept -> std::optional<StateVariant>
     {
         return std::visit(
-            [this](auto&& s) noexcept -> std::optional<StateVariant>
+            [](auto&& s) noexcept -> std::optional<StateVariant>
             {
                 using T = std::decay_t<decltype(s)>;
                 if constexpr (std::is_same_v<T, StateAnimating>) {
@@ -198,11 +197,11 @@ private:
     {
         return
             match(this->state(),
-                [this](const StateIdle&/*s*/) noexcept -> std::optional<StateVariant>
+                [](const StateIdle&/*s*/) noexcept -> std::optional<StateVariant>
                     { return StateAnimating{0}; },
-                [this](const StatePaused& s) noexcept -> std::optional<StateVariant>
+                [](const StatePaused& s) noexcept -> std::optional<StateVariant>
                     { return StateAnimating{s.counter_}; },
-                [this](const auto&) noexcept -> std::optional<StateVariant>
+                [](const auto&) noexcept -> std::optional<StateVariant>
                     { return std::nullopt; }
                 );
         // return std::visit(
@@ -226,7 +225,7 @@ private:
     constexpr auto stop() noexcept -> std::optional<StateVariant>
     {
         return std::visit(
-            [this](auto&& s) noexcept -> std::optional<StateVariant>
+            [](auto&& s) noexcept -> std::optional<StateVariant>
                 {
                     using T = std::decay_t<decltype(s)>;
                     if constexpr (std::is_same_v<T, StateAnimating> ||
@@ -243,7 +242,7 @@ private:
     constexpr auto pause() noexcept -> std::optional<StateVariant>
     {
         return std::visit(
-            [this](auto&& s) noexcept -> std::optional<StateVariant>
+            [](auto&& s) noexcept -> std::optional<StateVariant>
             {
                 using T = std::decay_t<decltype(s)>;
                 if constexpr (std::is_same_v<T, StateAnimating>) {
@@ -262,10 +261,37 @@ private:
 };
 
 
+inline void run_animation(Animation& anim) noexcept
+{
+    anim.dispatch(EventPlay{});
+    anim.dispatch(EventUpdate{});
+    anim.dispatch(EventPause{});
+    anim.dispatch(EventUpdate{});
+    anim.dispatch(EventPlay{});
+    anim.dispatch(EventUpdate{});
+    anim.dispatch(EventStop{});
+    anim.dispatch(EventPlay{});
+    anim.dispatch(EventUpdate{});
+    anim.dispatch(EventStop{});
+}
+
 int main()
 {
     auto fsm = Animation{};
-        for(auto i = 0u; i < 10u; ++i){
+
+    constexpr auto num_laps = 1'000'000u;
+    auto sw = Stopwatch{"Animation"};
+    for(auto i = 0u; i < num_laps; ++i){
+        run_animation(fsm);
+    }
+    sw.stop();
+    const auto total = sw.lap_get();
+    std::cout << "Animation benchmark over " << num_laps << " iterations:\n"
+        << "-   total = " << total << " ms\n"
+        << "-   average per 10 transitions = " << static_cast<double>(total) / num_laps << " ms\n"
+        << "-   average per transition = " << static_cast<double>(total) / num_laps /10 << " ms\n";
+
+    for(auto i = 0u; i < 10u; ++i){
         std::cout << fsm.current_state() << ", count: " << fsm.current_count() << "\n";
         fsm.dispatch(EventPlay{});
         fsm.dispatch(EventUpdate{});

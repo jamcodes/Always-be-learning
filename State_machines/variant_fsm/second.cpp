@@ -3,6 +3,7 @@
 #include <variant>
 #include <type_traits>
 #include <chrono>
+#include "Stopwatch/stopwatch.h"
 
 template<typename T>
 struct always_false : std::false_type { };
@@ -151,34 +152,50 @@ private:
 };
 
 
+inline void run_animation(Animation& anim) noexcept
+{
+    anim.dispatch(PlayEvent{});
+    anim.dispatch(UpdateEvent{});
+    anim.dispatch(PauseEvent{});
+    anim.dispatch(UpdateEvent{});
+    anim.dispatch(PlayEvent{});
+    anim.dispatch(UpdateEvent{});
+    anim.dispatch(StopEvent{});
+    anim.dispatch(PlayEvent{});
+    anim.dispatch(UpdateEvent{});
+    anim.dispatch(StopEvent{});
+}
+
 int main()
 {
     auto fsm = Animation{};
+
+    constexpr auto num_laps = 1'000'000u;
+    auto sw = Stopwatch{"Animation"};
+    for(auto i = 0u; i < num_laps; ++i){
+        run_animation(fsm);
+    }
+    sw.stop();
+    const auto total = sw.lap_get();
+    std::cout << "Animation benchmark over " << num_laps << " iterations:\n"
+        << "-   total = " << total << " ms\n"
+        << "-   average per 10 transitions = " << static_cast<double>(total) / num_laps << " ms\n"
+        << "-   average per transition = " << static_cast<double>(total) / num_laps /10 << " ms\n";
+
     for(auto i = 0u; i < 10u; ++i){
         std::cout << fsm.current_state() << ", count: " << fsm.current_count() << "\n";
-        // fsm.play();
-        // fsm.update();
         fsm.dispatch(PlayEvent{});
         fsm.dispatch(UpdateEvent{});
         std::cout << fsm.current_state() << ", count: " << fsm.current_count() << "\n";
-        // fsm.pause();
-        // fsm.update();
         fsm.dispatch(PauseEvent{});
         fsm.dispatch(UpdateEvent{});
         std::cout << fsm.current_state() << ", count: " << fsm.current_count() << "\n";
-        // fsm.play();
-        // fsm.update();
         fsm.dispatch(PlayEvent{});
         fsm.dispatch(UpdateEvent{});
         std::cout << fsm.current_state() << ", count: " << fsm.current_count() << "\n";
-        // fsm.update();
-        // fsm.update();
         fsm.dispatch(UpdateEvent{});
         fsm.dispatch(UpdateEvent{});
     }
-    // fsm.stop();
-    // fsm.pause();
-    // fsm.update();
     fsm.dispatch(StopEvent{});
     fsm.dispatch(PauseEvent{});
     fsm.dispatch(UpdateEvent{});

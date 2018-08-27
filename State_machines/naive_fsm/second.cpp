@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <functional>
+#include <Stopwatch/stopwatch.h>
 
 /**
  * Transition-table based implementation of a simple FSM.
@@ -168,11 +169,38 @@ static constexpr State AnimationTransitions[][num_events()] = {
     }
 };
 
+template<typename S, typename T, unsigned N1, unsigned N2>
+inline void run_animation(Fsm<S,T,N1,N2>& anim) noexcept
+{
+    anim.handle(Event::Play);
+    anim.handle(Event::Update);
+    anim.handle(Event::Pause);
+    anim.handle(Event::Update);
+    anim.handle(Event::Play);
+    anim.handle(Event::Update);
+    anim.handle(Event::Stop);
+    anim.handle(Event::Play);
+    anim.handle(Event::Update);
+    anim.handle(Event::Stop);
+}
 
 int main()
 {
     auto fsm = Fsm{AnimationStateHandlers, AnimationTransitions, State::Idle};
-    // fsm.initial_state(State::Idle);
+
+    constexpr auto num_laps = 1'000'000u;
+    auto sw = Stopwatch{"Animation"};
+    for(auto i = 0u; i < num_laps; ++i){
+        run_animation(fsm);
+    }
+    sw.stop();
+    const auto total = sw.lap_get();
+    std::cout << "Animation benchmark over " << num_laps << " iterations:\n"
+        << "-   total = " << total << " ms\n"
+        << "-   average per 10 transitions = " << static_cast<double>(total) / num_laps << " ms\n"
+        << "-   average per transition = " << static_cast<double>(total) / num_laps /10 << " ms\n";
+
+    fsm.initial_state(State::Idle);
     for(auto i = 0u; i < 10u; ++i)
     {
         fsm.handle(Event::Show);

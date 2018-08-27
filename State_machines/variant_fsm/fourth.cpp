@@ -3,6 +3,7 @@
 #include <variant>
 #include <optional>
 #include <type_traits>
+#include "Stopwatch/stopwatch.h"
 
 template<typename T>
 struct always_false : std::false_type { };
@@ -256,11 +257,37 @@ private:
     static constexpr inline auto counter_limit_ = 42u;
 };
 
+inline void run_animation(Animation& anim) noexcept
+{
+    anim.dispatch(EventPlay{});
+    anim.dispatch(EventUpdate{});
+    anim.dispatch(EventPause{});
+    anim.dispatch(EventUpdate{});
+    anim.dispatch(EventPlay{});
+    anim.dispatch(EventUpdate{});
+    anim.dispatch(EventStop{});
+    anim.dispatch(EventPlay{});
+    anim.dispatch(EventUpdate{});
+    anim.dispatch(EventStop{});
+}
 
 int main()
 {
     auto fsm = Animation{};
-        for(auto i = 0u; i < 10u; ++i){
+
+    constexpr auto num_laps = 1'000'000u;
+    auto sw = Stopwatch{"Animation"};
+    for(auto i = 0u; i < num_laps; ++i){
+        run_animation(fsm);
+    }
+    sw.stop();
+    const auto total = sw.lap_get();
+    std::cout << "Animation benchmark over " << num_laps << " iterations:\n"
+        << "-   total = " << total << " ms\n"
+        << "-   average per 10 transitions = " << static_cast<double>(total) / num_laps << " ms\n"
+        << "-   average per transition = " << static_cast<double>(total) / num_laps /10 << " ms\n";
+
+    for(auto i = 0u; i < 10u; ++i){
         std::cout << fsm.current_state() << ", count: " << fsm.current_count() << "\n";
         fsm.dispatch(EventPlay{});
         fsm.dispatch(EventUpdate{});

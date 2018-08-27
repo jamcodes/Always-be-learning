@@ -63,7 +63,8 @@ else()
     if(CMAKE_BUILD_TYPE MATCHES Debug)
       target_compile_options( Project_config INTERFACE
         -Og
-    )
+      )
+    endif()
     target_compile_options( Project_config INTERFACE
       -Wall
       -Wextra # reasonable and standard
@@ -83,7 +84,6 @@ else()
       -Wformat=2 # warn on security issues around functions that format output
               # (ie printf) 
     )
-    endif()
     if(ENABLE_WERROR)
       target_compile_options( Project_config INTERFACE
         -Werror
@@ -189,6 +189,7 @@ endif()
 ###############################################################################
 # Build target
 ###############################################################################
+include_directories("${CMAKE_SOURCE_DIR}/../../Benchmarking")
 foreach( target ${Sources} )
   string(REGEX MATCH "^[^ .]*" fname ${target} )
   MESSAGE( STATUS "Executable: ${fname}" )

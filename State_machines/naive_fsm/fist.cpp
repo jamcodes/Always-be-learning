@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include "Stopwatch/stopwatch.h"
 
 
 enum class State
@@ -91,9 +92,37 @@ private:
 };
 
 
+inline void run_animation(Animation& anim) noexcept
+{
+    anim.play();
+    anim.update();
+    anim.pause();
+    anim.update();
+    anim.play();
+    anim.update();
+    anim.stop();
+    anim.play();
+    anim.update();
+    anim.stop();
+}
+
+
 int main()
 {
     auto fsm = Animation{};
+
+    constexpr auto num_laps = 1'000'000u;
+    auto sw = Stopwatch{"Animation"};
+    for(auto i = 0u; i < num_laps; ++i){
+        run_animation(fsm);
+    }
+    sw.stop();
+    const auto total = sw.lap_get();
+    std::cout << "Animation benchmark over " << num_laps << " iterations:\n"
+        << "-   total = " << total << " ms\n"
+        << "-   average per 10 transitions = " << static_cast<double>(total) / num_laps << " ms\n"
+        << "-   average per transition = " << static_cast<double>(total) / num_laps /10 << " ms\n";
+
     for(auto i = 0u; i < 10u; ++i){
         std::cout << fsm.current_state() << ", count: " << fsm.current_count() << "\n";
         fsm.play();
