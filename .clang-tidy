@@ -1,2 +1,3 @@
 Checks: '*, -clang-diagnostic-c++98-compat, -readability-implicit-bool-conversion,\
--google-readability-todo, -fuchsia-overloaded-operator -fuchsia-default-arguments'
+-google-readability-todo, -fuchsia-overloaded-operator, -fuchsia-default-arguments,
+-readability-named-parameter'
