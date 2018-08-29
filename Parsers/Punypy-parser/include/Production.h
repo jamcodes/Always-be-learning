@@ -50,7 +50,7 @@ protected:
     //     throw Bad_production{"Value called on a non Int_prod production"};
     // }
 
-    // virtual int param_count() const
+    // virtual size_t param_count() const
     // {
     //     throw Bad_production{
     //         "param_count() called on a non Param_prod/FuncCal_prod/FuncDef_prod production"
@@ -139,7 +139,7 @@ public:
     //     return prod_->value();
     // }
 
-    // int param_count() const
+    // size_t param_count() const
     // {
     //     return prod_->param_count();
     // }
@@ -248,7 +248,7 @@ public:
         return expr_->interpret(world);
     }
 
-    // int param_count() const
+    // size_t param_count() const
     // {
     //     return expr_->param_count();
     // }
@@ -273,7 +273,7 @@ private:
 //     // Parameterable(Parameterable&&) noexcept = default;
 //     // Parameterable& operator=(const Parameterable&) noexcept = default;
 //     // Parameterable& operator=(Parameterable&&) noexcept = default;
-//     virtual int param_count() const = 0;
+//     virtual size_t param_count() const = 0;
 // };
 
 class Params_prod : public Prod_base
@@ -323,7 +323,7 @@ class Params_prod : public Prod_base
         return params_;
     }
 
-    int param_count() const
+    size_t param_count() const
     {
         return params_.size();
     }
@@ -387,7 +387,7 @@ public:
         return params_->params();
     }
 
-    int param_count() const
+    size_t param_count() const
     {
         return params_->param_count();
     }
@@ -550,7 +550,7 @@ class FuncDef_prod : public Func_base
         return params_.params();
     }
 
-    int param_count() const
+    size_t param_count() const
     {
         return params_.param_count();
     }
@@ -661,7 +661,7 @@ class FuncCall_prod :public Prod_base
 
     int interpret(PunyPyWorld&) final;
 
-    int param_count() const
+    size_t param_count() const
     {
         return params_.param_count();
     }
@@ -718,7 +718,7 @@ public:
     //     return func_->interpret(world);
     // }
 
-    int param_count() const
+    size_t param_count() const
     {
         return func_->param_count();
     }
