@@ -18,8 +18,8 @@ class Animation
 {
 
 struct sIdle { };
-struct sAnimating { };
-struct sPaused { };
+struct sAnimating { unsigned counter{}; };
+struct sPaused { /* unsigned counter{}; */ };
 
 public:
     Animation() noexcept = default;
@@ -29,21 +29,24 @@ public:
     inline auto operator()()
     {
         using namespace sml;
-        const auto ctr_guard = [this]()noexcept { return counter_ >= counter_limit; };
+        const auto ctr_guard = [this]()noexcept { return animating_.counter >= counter_limit; };
         return make_transition_table(
             * state<sIdle> + event<ePlay> = state<sAnimating>
             , state<sIdle> + on_entry<_>  /
-                [this](){counter_ = 0; /* std::cout << "Idle, counter: " << counter_ << "\n" */;}
+                [this](){
+                    animating_.counter = 0;
+                    /* std::cout << "Idle, counter: " << counter_ << "\n"; */
+                }
 
-            , state<sAnimating> + event<eUpdate> / [this]{++counter_;}
+            , state<sAnimating> + event<eUpdate> / [this](){++animating_.counter;}
             , state<sAnimating> + event<eUpdate> [ ctr_guard ] = state<sIdle>
             , state<sAnimating> + event<ePause> = state<sPaused>
-            , state<sAnimating> + event<eStop>  / [this](){counter_ = 0;} = state<sIdle>
+            , state<sAnimating> + event<eStop>  = state<sIdle>
             // , state<sAnimating> + on_entry<_>   /
             //     [this](){std::cout << "Animating, counter: " << counter_ << "\n";}
 
             , state<sPaused>    + event<ePlay> = state<sAnimating>
-            , state<sPaused>    + event<eStop> / [this](){counter_ = 0;} = state<sIdle>
+            , state<sPaused>    + event<eStop> = state<sIdle>
             // , state<sPaused>    + on_entry<_>  /
             //     [this](){std::cout << "Paused, counter: " << counter_ << "\n";}
         );
@@ -51,7 +54,8 @@ public:
 
 // private:
 // sAnimating, sPaused data
-    unsigned counter_{};
+    sAnimating  animating_{};
+    // sPaused     paused_{};   // not really needed
 
     constexpr static inline auto counter_limit{42};
 };
