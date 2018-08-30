@@ -1,21 +1,26 @@
 cmake_minimum_required( VERSION 3.1 )
 
-set( Project miscellaneous )
+set( Project char_seq )
 project( ${Project} )
 
 
 ###############################################################################
 # Prepare external dependencies
 ###############################################################################
+# If using any external libraries create a 'external'
+# subdir with an appropriate CMakeLists and add the following
+# for each library
+# add_subdirectory( external/clara )
+
 # Find any external libraries via find_backage
 # see cmake --help-module-list and cmake --help-module ModuleName
 # for details on a specific module
 # If using boost
 # find_package( Boost 1.60.0
 #   REQUIRED COMPONENTS
-#   system thread
+#   filesystem system iostreams
 #   )
-
+#
 # if( Boost_FOUND )
 #   include_directories( ${Boost_INCLUDE_DIRS} )
 # else()
@@ -27,8 +32,16 @@ project( ${Project} )
 # Prepare source files for build
 ###############################################################################
 # Create a Sources variable to all the cpp files necessary
-file( GLOB Sources RELATIVE "${PROJECT_SOURCE_DIR}"
-      "${PROJECT_SOURCE_DIR}/*.cpp" )
+# to build the target
+# set( Sources
+#     ${PROJECT_SOURCE_DIR}/src/file1.cpp
+#     ${PROJECT_SOURCE_DIR}/src/file2.cpp
+#    )
+
+# Or glob all the files
+file( GLOB Sources 
+      "${PROJECT_SOURCE_DIR}/*.cpp"
+    )
 
 
 ###############################################################################
@@ -166,7 +179,6 @@ if(CPP_USE_CPPCHECK)
               "--verbose"
               "--language=c++"
               "--inline-suppr"
-              "${CMAKE_SOURCE_DIR}/*.h"
               "${CMAKE_SOURCE_DIR}/*.cpp"
       )
       message(${Cppcheck})
@@ -189,17 +201,32 @@ endif()
 ###############################################################################
 # Build target
 ###############################################################################
-foreach( target ${Sources} )
-  string(REGEX MATCH "^[^ .]*" fname ${target} )
-  MESSAGE( STATUS "Executable: ${fname}" )
-  add_executable( ${fname} ${target} )
-  # target_compile_options( ${fname} PUBLIC
-  #   # -fprofile-arcs -ftest-coverage
-  #   -fconcepts
-  #   -lstdc++fs
-  # )
-  target_link_libraries( ${fname}
+add_executable( ${PROJECT_NAME}
+    ${Sources}
+    )
+# target_include_directories( ${PROJECT_NAME}
+#     PUBLIC
+#     ${PROJECT_SOURCE_DIR}/include
+#     )
+if(CPP_USE_CPPCHECK)
+    set_target_properties( ${PROJECT_NAME}
+        PROPERTIES
+        CXX_CPPCHECK "${Cppcheck}"
+    )
+endif()
+if(CPP_USE_CLANGTIDY)
+    set_target_properties( ${PROJECT_NAME}
+        PROPERTIES
+        CXX_CLANG_TIDY "${Clangtidy}"
+    )
+endif()
+# target_compile_options( ${PROJECT_NAME}
+#     PRIVATE
+#     # -fconcepts
+#     # -lstdc++fs
+#     )
+
+target_link_libraries( ${PROJECT_NAME}
     Project_config
     # ${Boost_LIBRARIES}
     )
-endforeach(target)

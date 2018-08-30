@@ -125,18 +125,18 @@ decltype(auto) operator<<(std::basic_ostream<CharT, Traits>& os, const std::tupl
 //     print(os, ts...);
 // }
 
-// template<typename F, typename Tuple, std::size_t... Is>
-// constexpr decltype(auto) apply_impl(F&& f, Tuple&& tuple, std::index_sequence<Is...>) noexcept
-// {
-//     return std::forward<F>(f)( std::get<Is>(std::forward<Tuple>(tuple))... );
-// }
+template<typename F, typename Tuple, std::size_t... Is>
+constexpr decltype(auto) apply_impl(F&& f, Tuple&& tuple, std::index_sequence<Is...>) noexcept
+{
+    return std::forward<F>(f)( std::get<Is>(std::forward<Tuple>(tuple))... );
+}
 
-// template<typename F, typename Tuple>
-// constexpr decltype(auto) myapply(F&& f, Tuple&& tuple) noexcept
-// {
-//     using Indices = std::make_index_sequence<std::tuple_size_v<std::decay_t<Tuple>>>;
-//     return apply_impl(std::forward<F>(f), std::forward<Tuple>(tuple), Indices{});
-// }
+template<typename F, typename Tuple>
+constexpr decltype(auto) apply(F&& f, Tuple&& tuple) noexcept
+{
+    using Indices = std::make_index_sequence<std::tuple_size_v<std::decay_t<Tuple>>>;
+    return apply_impl(std::forward<F>(f), std::forward<Tuple>(tuple), Indices{});
+}
 
 // template<typename... Ts>
 // std::ostream& operator<<(std::ostream& os, const std::tuple<Ts...>& tuple)

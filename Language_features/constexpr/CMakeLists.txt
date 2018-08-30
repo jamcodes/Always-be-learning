@@ -1,6 +1,6 @@
 cmake_minimum_required( VERSION 3.1 )
 
-set( Project miscellaneous )
+set( Project constexprstuff )
 project( ${Project} )
 
 
@@ -64,6 +64,7 @@ else()
       target_compile_options( Project_config INTERFACE
         -Og
     )
+    endif()
     target_compile_options( Project_config INTERFACE
       -Wall
       -Wextra # reasonable and standard
@@ -83,7 +84,6 @@ else()
       -Wformat=2 # warn on security issues around functions that format output
               # (ie printf) 
     )
-    endif()
     if(ENABLE_WERROR)
       target_compile_options( Project_config INTERFACE
         -Werror
