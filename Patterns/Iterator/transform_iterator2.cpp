@@ -33,7 +33,7 @@ public:
     using difference_type = typename std::iterator_traits<Iterator>::difference_type;
     using iterator_category = typename std::iterator_traits<Iterator>::iterator_category;
 
-    toupper_iterator() noexcept = default;
+    toupper_iterator() = default;
     explicit toupper_iterator( const Iterator& it )
         : self::iterator_adaptor_{it} { }
 

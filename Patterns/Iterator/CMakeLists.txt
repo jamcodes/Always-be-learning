@@ -50,7 +50,7 @@ set( CMAKE_EXPORT_COMPILE_COMMANDS ON )
 option(ENABLE_ASAN "Enable memory sanitizers" FALSE)
 option(ENABLE_USAN "Enable undefined sanitizers" FALSE)
 option(ENABLE_TSAN "Enable thread sanitizers" FALSE)
-option(ENABLE_WERROR "Treat warnings as errors" TRUE)
+option(ENABLE_WERROR "Treat warnings as errors" FALSE)
 
 if(CMAKE_COMPILER_IS_GNUCC)
   option(ENABLE_COVERAGE "Enable coverage reporting for gcc/clang" FALSE)
@@ -64,6 +64,7 @@ else()
       target_compile_options( Project_config INTERFACE
         -Og
     )
+    endif()
     target_compile_options( Project_config INTERFACE
       -Wall
       -Wextra # reasonable and standard
@@ -83,7 +84,6 @@ else()
       -Wformat=2 # warn on security issues around functions that format output
               # (ie printf) 
     )
-    endif()
     if(ENABLE_WERROR)
       target_compile_options( Project_config INTERFACE
         -Werror

@@ -34,7 +34,7 @@ public:
     using difference_type       = typename std::iterator_traits<Iterator>::difference_type;
     using iterator_category     = typename std::iterator_traits<Iterator>::iterator_category;
 
-    transform_iterator() noexcept = default;
+    transform_iterator() = default;
     transform_iterator( const Iterator& it, UnaryFunction function )
         : self::iterator_adaptor_{it}, m_function{function} { }
     

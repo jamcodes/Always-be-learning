@@ -1,31 +1,39 @@
 #include <iostream>
-#include <iterator>
+// #include <iterator>
 #include <vector>
 #include <forward_list>
 #include <list>
 
 
 template<typename Derived>
-class InserterBase : public std::iterator<std::output_iterator_tag, void,void,void,void>
+    // std::iterator is deprecated in C++17
+struct InserterBase : public std::iterator<std::output_iterator_tag, void,void,void,void>
 {
 public:
+    using iterator_category = std::output_iterator_tag;
+    using value_type = void;
+    using reference = void;
+    using pointer = void;
+    using distance_type = std::ptrdiff_t;   // deprecated in C++17
+
     decltype(auto) operator*() noexcept { return derived(); }
     decltype(auto) operator*() const noexcept { return derived(); }
     decltype(auto) operator++() noexcept { return derived(); }
     auto operator++(int) noexcept { return derived(); }
+
 protected:
-private:
     Derived& derived() noexcept
     { return static_cast<Derived&>(*this); }
     const Derived& derived() const noexcept
     { return static_cast<const Derived&>(*this); }
 
+private:
     InserterBase() noexcept = default;
     friend Derived;
 };
 
 template<typename Container>
-class Backinserter : public InserterBase<Backinserter<Container>>
+struct Backinserter : public InserterBase<Backinserter<Container>>
 {
 public:
     explicit Backinserter(Container& cont)
@@ -52,7 +60,7 @@ Backinserter<Container> make_Backinserter( Container& container )
 
 
 template<typename Container>
-class Frontinserter : public InserterBase<Frontinserter<Container>>
+struct Frontinserter : public InserterBase<Frontinserter<Container>>
 {
 public:
     explicit Frontinserter(Container& cont) noexcept
@@ -78,7 +86,7 @@ Frontinserter<Container> make_Frontinserter(Container& container)
 { return Frontinserter<Container>(container); }
 
 template<typename Container>
-class Inserter : public InserterBase<Inserter<Container>>
+struct Inserter : public InserterBase<Inserter<Container>>
 {
 public:
     explicit Inserter( Container& cont, typename Container::iterator iter)
