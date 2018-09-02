@@ -91,6 +91,25 @@ struct has_tail :   /*  predicate               if true          if false */
 template<typename T>
 constexpr inline auto has_tail_v = has_tail<T>::value;
 
+// different has_tail implementation ?
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+template<typename...>
+struct has_tail_alt;
+
+template<typename T>
+struct has_tail_alt<T> : std::false_type { };
+
+template<typename T, typename... Ts>
+struct has_tail_alt<T,Ts...> : std::true_type { };
+
+template< template<class> class C, typename T>
+struct has_tail_alt<C<T>> : std::false_type { };
+
+template< template<class...> class C, typename T, typename... Ts>
+struct has_tail_alt<C<T, Ts...>> : std::true_type { };
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
 // check if a class defines a required member function
 template<typename Handler, typename Event, typename = void>
 struct has_handler : std::false_type { };
