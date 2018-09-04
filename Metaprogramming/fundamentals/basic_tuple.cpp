@@ -8,6 +8,9 @@ using std::size_t;
 template<size_t Index, typename T>
 struct element { using type = T; };
 
+template<size_t I, typename T>
+using element_t = typename element<I,T>::type;
+
 template<typename Indices, typename... Ts>  // Indices will match a std::index_sequence
 struct tuple_impl { };
 
@@ -21,7 +24,7 @@ struct tuple : tuple_impl<std::make_index_sequence<sizeof...(Ts)>, Ts...> { };
 // now all we need to do to access an element is static_cast to one of the element types
 // like element<1, double>. To do that by specifying only the index we need to pattern match again
 template<size_t I, typename T>
-typename element<I, T>::type get(const element<I, T>&) noexcept;
+element_t<I, T> get(const element<I, T>&) noexcept;
 // We don't actually need to provide a definition since we only need it for deduction purposes
 
 // `at` finds the return type of get

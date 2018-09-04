@@ -68,24 +68,31 @@ constexpr decltype(auto) fizzbuzz_number(std::index_sequence<I>) noexcept
 // ------------------------------------------------------------------------------------------------
 
 // Declaration
+// template<std::size_t... Is>
+// constexpr auto fizzbuzz(std::index_sequence<Is...>) noexcept;
+
+// // base case
+// template<>
+// constexpr auto fizzbuzz(std::index_sequence<>) noexcept
+// {
+//     return std::tuple<>{};
+// }
+
+// // recursive definition
+// template<std::size_t I, std::size_t... Is>
+// constexpr auto fizzbuzz(std::index_sequence<I, Is...>) noexcept
+// {
+//     return std::tuple_cat(
+//         fizzbuzz_number(std::index_sequence<I>{}),
+//         fizzbuzz(std::index_sequence<Is...>{})
+//     );
+// }
+
+// or just...
 template<std::size_t... Is>
-constexpr auto fizzbuzz(std::index_sequence<Is...>) noexcept;
-
-// base case
-template<>
-constexpr auto fizzbuzz(std::index_sequence<>) noexcept
+constexpr auto fizzbuzz(std::index_sequence<Is...>) noexcept
 {
-    return std::tuple<>{};
-}
-
-// recursive definition
-template<std::size_t I, std::size_t... Is>
-constexpr auto fizzbuzz(std::index_sequence<I, Is...>) noexcept
-{
-    return std::tuple_cat(
-        fizzbuzz_number(std::index_sequence<I>{}),
-        fizzbuzz(std::index_sequence<Is...>{})
-    );
+    return std::tuple_cat(fizzbuzz_number(std::index_sequence<Is>{})...);
 }
 // ------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------
