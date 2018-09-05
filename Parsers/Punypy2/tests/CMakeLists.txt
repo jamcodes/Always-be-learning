@@ -33,18 +33,10 @@ add_executable( ${PROJECT_NAME}
 target_sources( ${PROJECT_NAME}
     PUBLIC ${TestSources}
     )
-if( CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang|GNU" )
-    target_compile_options( ${PROJECT_NAME} PUBLIC
-    -Wall -Wextra -pedantic -Werror
+target_compile_options( ${PROJECT_NAME}
+    PRIVATE
     -fconcepts
-    )
-endif()
-if( CMAKE_CXX_COMPILER_ID MATCHES "MSVC" )
-    target_compile_options( ${PROJECT_NAME} PRIVATE /W4 /WX )
-endif()
-
-target_include_directories( ${PROJECT_NAME}
-    PUBLIC ${IncludesDir}
+    # -lstdc++fs
     )
 if( LibrarySources )
 target_link_libraries( ${PROJECT_NAME}
@@ -52,6 +44,7 @@ target_link_libraries( ${PROJECT_NAME}
     )
 endif()
 target_link_libraries( ${PROJECT_NAME}
+    Project_config
     GTest::GTest
     GTest::Main
     )
@@ -59,5 +52,6 @@ target_link_libraries( ${PROJECT_NAME}
 
 ###############################################################################
 # CTest
-# enable_testing()
-# add_test( test_all ${TestProject} )
+enable_testing()
+# gtest_discover_tests(${PROJECT_NAME})
+add_test(${PROJECT_NAME} ${PROJECT_NAME})
