@@ -64,6 +64,48 @@ using front_t = typename front<Ts...>::type;
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
+// Adding elements to a list
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+template<typename L, typename... Ts> struct push_front_impl;
+
+template<template<class...> class C, typename... Us, typename... Ts>
+struct push_front_impl<C<Ts...>, Us...> {
+    using type = C<Us..., Ts...>;
+};
+
+namespace lazy
+{
+
+template<typename List, typename... Ts>
+struct push_front : push_front_impl<List, Ts...> { };
+
+}
+
+template<typename List, typename... Ts>
+using push_front = typename push_front_impl<List,Ts...>::type;
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+// Removing elements from the list
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+template<typename L> struct pop_front_impl;
+
+template<template<class...> class C, typename T, typename... Ts>
+struct pop_front_impl<C<T,Ts...>> {
+    using type = C<Ts...>;
+};
+
+namespace lazy
+{
+    template<typename List>
+    struct pop_front : pop_front_impl<List> { };
+}
+
+template<typename List>
+using pop_front = typename pop_front_impl<List>::type;
+
+// TODO: figure out how to pop multiple elements at once
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int main()
 {
     using stuff = list<int, char, double>;
@@ -91,4 +133,47 @@ int main()
     static_assert(std::is_same_v<front_t<float, int>, float>,
         "front_t: two elem pack case failed");
 
+
+    using lst1 = list<int, char>;
+    using lst1_prim = push_front<lst1, double>;
+    using lst1_prim_lazy = lazy::push_front<lst1, double>;
+    using lst1_expected = list<double, int, char>;
+    static_assert(std::is_same_v<lst1_expected, lst1_prim>, "push_front test failed");
+    static_assert(std::is_same_v<lst1_expected, typename lst1_prim_lazy::type>,
+        "lazy push_front test failed");
+
+    using lst_empty = list<>;
+    using lst_empty_prim = push_front<lst_empty, double>;
+    using lst_empty_prim_lazy = lazy::push_front<lst_empty, double>;
+    using lst_empty_expected = list<double>;
+    static_assert(std::is_same_v<lst_empty_expected, lst_empty_prim>,
+        "push_front empty list test failed");
+    static_assert(std::is_same_v<lst_empty_expected, typename lst_empty_prim_lazy::type>,
+        "lazy push_front empty list test failed");
+
+    using lst2 = list<int>;
+    using lst2_prim = push_front<lst2, char, double>;
+    using lst2_prim_lazy = lazy::push_front<lst2, char, double>;
+    using lst2_expected = list<char, double, int>;
+    static_assert(std::is_same_v<lst2_expected, lst2_prim>,
+        "push_front empty list test failed");
+    static_assert(std::is_same_v<lst2_expected, typename lst2_prim_lazy::type>,
+        "lazy push_front empty list test failed");
+
+
+    using lstpop1 = list<int, char>;
+    using lstpop1_prim = pop_front<lstpop1>;
+    using lstpop1_prim_lazy = lazy::pop_front<lstpop1>;
+    using lstpop1_expected = list<char>;
+    static_assert(std::is_same_v<lstpop1_prim, lstpop1_expected>, "pop_front test 1 failed");
+    static_assert(std::is_same_v<typename lstpop1_prim_lazy::type, lstpop1_expected>,
+        "lazy pop_front test 1 failed");
+
+    using lstpop2 = list<int>;
+    using lstpop2_prim = pop_front<lstpop2>;
+    using lstpop2_prim_lazy = lazy::pop_front<lstpop2>;
+    using lstpop2_expected = list<>;
+    static_assert(std::is_same_v<lstpop2_prim, lstpop2_expected>, "pop_front test 2 failed");
+    static_assert(std::is_same_v<typename lstpop2_prim_lazy::type, lstpop2_expected>,
+        "lazy pop_front test 2 failed");
 }

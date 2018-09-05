@@ -7,7 +7,7 @@ struct list { };
 
 // list of values
 template<typename T, T... Values>
-using integral_list = list<std::integral_constant<T,Values...>>;
+using integral_list = list<std::integral_constant<T,Values>...>;
 
 // last element of a list
 template<typename...> struct back;
@@ -30,7 +30,7 @@ struct back<list<T,Ts...>>
 template<typename T> using back_t = typename back<T>::type;
 
 // first element
-template<typename...> struct front { };
+template<typename...> struct front;
 
 template<typename Head, typename... Tail>
     struct front<Head, Tail...> { using type = Head; };
