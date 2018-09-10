@@ -66,6 +66,8 @@ using front_t = typename front<Ts...>::type;
 
 // Adding elements to a list
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+// push front
 template<typename L, typename... Ts> struct push_front_impl;
 
 template<template<class...> class C, typename... Us, typename... Ts>
@@ -83,6 +85,25 @@ struct push_front : push_front_impl<List, Ts...> { };
 
 template<typename List, typename... Ts>
 using push_front = typename push_front_impl<List,Ts...>::type;
+
+
+// push_back
+template<typename L, typename... Ts> struct push_back_impl;
+
+template<template<class...> class C, typename... Us, typename... Ts>
+struct push_back_impl<C<Ts...>, Us...> {
+    using type = C<Ts..., Us...>;
+};
+
+namespace lazy
+{
+    template<typename List, typename... Ts>
+    struct push_back : push_back_impl<List, Ts...> { };
+}
+
+template<typename List, typename... Ts>
+using push_back = typename push_back_impl<List, Ts...>::type;
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 // Removing elements from the list
@@ -105,6 +126,18 @@ using pop_front = typename pop_front_impl<List>::type;
 
 // TODO: figure out how to pop multiple elements at once
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+// capacity
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+template<typename L, typename... Ts> struct count;
+
+template<template<class...> class C, typename... Ts>
+struct count<C<Ts...>> { static constexpr inline auto value = sizeof...(Ts); };
+
+template<typename List>
+static constexpr inline auto count_v = count<List>::value;
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 
 int main()
 {
@@ -160,6 +193,18 @@ int main()
     static_assert(std::is_same_v<lst2_expected, typename lst2_prim_lazy::type>,
         "lazy push_front empty list test failed");
 
+    using lst2_pback = push_back<lst2, char, double>;
+    using lst2_pback_lazy = lazy::push_back<lst2, char, double>;
+    using lst2_pback_expected = list<int, char, double>;
+    static_assert(std::is_same_v<lst2_pback_expected, lst2_pback>, "push_back failed");
+    static_assert(std::is_same_v<lst2_pback_expected, typename lst2_pback_lazy::type>,
+        "lazy push_back failed");
+    using lst_empty_pback = push_back<lst_empty, double, int>;
+    using lst_empty_pback_lazy = lazy::push_back<lst_empty, double, int>;
+    using lst_empty_pback_expected = list<double, int>;
+    static_assert(std::is_same_v<lst_empty_pback_expected, lst_empty_pback>, "push_back failed");
+    static_assert(std::is_same_v<lst_empty_pback_expected, typename lst_empty_pback_lazy::type>,
+        "lazy push_back failed");
 
     using lstpop1 = list<int, char>;
     using lstpop1_prim = pop_front<lstpop1>;
@@ -176,4 +221,9 @@ int main()
     static_assert(std::is_same_v<lstpop2_prim, lstpop2_expected>, "pop_front test 2 failed");
     static_assert(std::is_same_v<typename lstpop2_prim_lazy::type, lstpop2_expected>,
         "lazy pop_front test 2 failed");
+
+    using lstcnt0 = list<>;
+    using lstcnt3 = list<int, char, double>;
+    static_assert(count_v<lstcnt0> == 0ull, "count failed for empty list");
+    static_assert(count_v<lstcnt3> == 3ull, "count failed for list of size 3");
 }
