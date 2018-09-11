@@ -7,20 +7,15 @@ project( ${Project} )
 ###############################################################################
 # Prepare external dependencies
 ###############################################################################
-# If using any external libraries create a 'external'
-# subdir with an appropriate CMakeLists and add the following
-# for each library
-# add_subdirectory( external/clara )
-
 # Find any external libraries via find_backage
 # see cmake --help-module-list and cmake --help-module ModuleName
 # for details on a specific module
 # If using boost
 # find_package( Boost 1.60.0
 #   REQUIRED COMPONENTS
-#   filesystem system iostreams
+#   system thread
 #   )
-#
+
 # if( Boost_FOUND )
 #   include_directories( ${Boost_INCLUDE_DIRS} )
 # else()
@@ -32,16 +27,8 @@ project( ${Project} )
 # Prepare source files for build
 ###############################################################################
 # Create a Sources variable to all the cpp files necessary
-# to build the target
-# set( Sources
-#     ${PROJECT_SOURCE_DIR}/src/file1.cpp
-#     ${PROJECT_SOURCE_DIR}/src/file2.cpp
-#    )
-
-# Or glob all the files
-file( GLOB Sources 
-      "${PROJECT_SOURCE_DIR}/src/*.cpp"
-    )
+file( GLOB Sources RELATIVE "${PROJECT_SOURCE_DIR}"
+      "${PROJECT_SOURCE_DIR}/*.cpp" )
 
 
 ###############################################################################
@@ -77,6 +64,7 @@ else()
       target_compile_options( Project_config INTERFACE
         -Og
     )
+    endif()
     target_compile_options( Project_config INTERFACE
       -Wall
       -Wextra # reasonable and standard
@@ -96,7 +84,6 @@ else()
       -Wformat=2 # warn on security issues around functions that format output
               # (ie printf) 
     )
-    endif()
     if(ENABLE_WERROR)
       target_compile_options( Project_config INTERFACE
         -Werror
@@ -179,8 +166,8 @@ if(CPP_USE_CPPCHECK)
               "--verbose"
               "--language=c++"
               "--inline-suppr"
-              "${CMAKE_SOURCE_DIR}/include/*.h"
-              "${CMAKE_SOURCE_DIR}/src/*.cpp"
+              "${CMAKE_SOURCE_DIR}/*.h"
+              "${CMAKE_SOURCE_DIR}/*.cpp"
       )
       message(${Cppcheck})
   endif()
@@ -202,28 +189,16 @@ endif()
 ###############################################################################
 # Build target
 ###############################################################################
-add_executable( ${PROJECT_NAME}
-    ${Sources}
-    )
-
-target_include_directories( ${PROJECT_NAME}
-    PUBLIC
-    ${PROJECT_SOURCE_DIR}/include
-    )
-if(CPP_USE_CPPCHECK)
-    set_target_properties( ${PROJECT_NAME}
-        PROPERTIES
-        CXX_CPPCHECK "${Cppcheck}"
-    )
-endif()
-if(CPP_USE_CLANGTIDY)
-    set_target_properties( ${PROJECT_NAME}
-        PROPERTIES
-        CXX_CLANG_TIDY "${Clangtidy}"
-    )
-endif()
-
-target_link_libraries( ${PROJECT_NAME}
+foreach( target ${Sources} )
+  string(REGEX MATCH "^[^ .]*" fname ${target} )
+  MESSAGE( STATUS "Executable: ${fname}" )
+  add_executable( ${fname} ${target} )
+  target_compile_options( ${fname} PUBLIC
+    -fconcepts
+    # -lstdc++fs
+  )
+  target_link_libraries( ${fname}
     Project_config
     # ${Boost_LIBRARIES}
     )
+endforeach(target)
