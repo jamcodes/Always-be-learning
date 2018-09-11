@@ -33,13 +33,14 @@ struct back_impl<C<T>> { using type = T; };    // the only element is the last e
 template<template<class...> class C, typename Head, typename... Tail>
 struct back_impl<C<Head,Tail...>> { using type = typename back_impl<C<Tail...>>::type; };
 
+namespace lazy
+{
+    template<typename... List>
+    struct back : back_impl<List...> { };
+}
 
-// public interface
-template<typename... Ts>
-struct back : back_impl<Ts...> { };
-
-template<typename... Ts>
-using back_t = typename back<Ts...>::type;
+template<typename... List>
+using back = typename back_impl<List...>::type;
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
@@ -56,11 +57,14 @@ template<template<class...> class C, typename T, typename... Ts>
 struct front_impl<C<T, Ts...>> { using type = T; };
 
 // public interface
-template<typename... Ts>
-struct front : front_impl<Ts...> { };
+namespace lazy
+{
+    template<typename... Ts>
+    struct front : front_impl<Ts...> { };
+}
 
 template<typename... Ts>
-using front_t = typename front<Ts...>::type;
+using front = typename front_impl<Ts...>::type;
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
@@ -145,25 +149,25 @@ int main()
     using two_elem = list<int, float>;
     using one_elem = list<double>;
 
-    static_assert(std::is_same_v<back_t<stuff>,double>,
+    static_assert(std::is_same_v<back<stuff>,double>,
         "back_t: three elem list case failed");
-    static_assert(std::is_same_v<back_t<one_elem>, double>,
+    static_assert(std::is_same_v<back<one_elem>, double>,
         "back_t: single element list case failed");
-    static_assert(std::is_same_v<back_t<double>, double>,
+    static_assert(std::is_same_v<back<double>, double>,
         "back_t: single element pack case failed");
-    static_assert(std::is_same_v<back_t<two_elem>, float>,
+    static_assert(std::is_same_v<back<two_elem>, float>,
         "back_t: two elem list case failed");
-    static_assert(std::is_same_v<back_t<int, float>, float>,
+    static_assert(std::is_same_v<back<int, float>, float>,
         "back_t: two elem pack failed");
 
-    static_assert(std::is_same_v<front_t<stuff>, int>,
+    static_assert(std::is_same_v<front<stuff>, int>,
         "front_t: three elem list case failed");
-    static_assert(std::is_same_v<front_t<one_elem>, double>,
+    static_assert(std::is_same_v<front<one_elem>, double>,
         "front_t: single elem list case failed");
-    static_assert(std::is_same_v<front_t<double>, double>,
+    static_assert(std::is_same_v<front<double>, double>,
         "front_t: single elem pack case failed");
-    static_assert(std::is_same_v<front_t<two_elem>, int>, "front_t: two elem list case failed");
-    static_assert(std::is_same_v<front_t<float, int>, float>,
+    static_assert(std::is_same_v<front<two_elem>, int>, "front_t: two elem list case failed");
+    static_assert(std::is_same_v<front<float, int>, float>,
         "front_t: two elem pack case failed");
 
 
