@@ -38,7 +38,7 @@ TEST_F(TokenTest, StringLiteral)
     const auto res = std::visit([](auto&& val){
             using T = std::decay_t<decltype(val)>;
             if constexpr (std::is_same_v<T, def>) {
-                return val == def::value;
+                return val == def();
             }
             return false;
         }

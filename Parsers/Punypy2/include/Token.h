@@ -45,23 +45,23 @@ struct token_literal : T
     constexpr operator value_type() const noexcept { return T::value; };
     constexpr value_type operator()() const noexcept { return T::value; };
 
-    template<typename L, typename R>
-    friend auto operator==(const token_literal<L>&/*lhs*/, const token_literal<R>&/*rhs*/) noexcept;
+    template<typename L, typename R> friend constexpr
+    auto operator==(const token_literal<L>&/*lhs*/, const token_literal<R>&/*rhs*/) noexcept;
 
-    template<typename L, typename R>
-    friend auto operator!=(const token_literal<L>&/*lhs*/, const token_literal<R>&/*rhs*/) noexcept;
+    template<typename L, typename R> friend constexpr
+    auto operator!=(const token_literal<L>&/*lhs*/, const token_literal<R>&/*rhs*/) noexcept;
 
-    template<typename L, typename R>
-    friend auto operator<(const token_literal<L>&/*lhs*/, const token_literal<R>&/*rhs*/) noexcept;
+    template<typename L, typename R> friend constexpr
+    auto operator<(const token_literal<L>&/*lhs*/, const token_literal<R>&/*rhs*/) noexcept;
 
-    template<typename L, typename R>
-    friend auto operator>(const token_literal<L>&/*lhs*/, const token_literal<R>&/*rhs*/) noexcept;
+    template<typename L, typename R> friend constexpr
+    auto operator>(const token_literal<L>&/*lhs*/, const token_literal<R>&/*rhs*/) noexcept;
 
-    template<typename L, typename R>
-    friend auto operator<=(const token_literal<L>&/*lhs*/, const token_literal<R>&/*rhs*/) noexcept;
+    template<typename L, typename R> friend constexpr
+    auto operator<=(const token_literal<L>&/*lhs*/, const token_literal<R>&/*rhs*/) noexcept;
 
-    template<typename L, typename R>
-    friend auto operator>=(const token_literal<L>&/*lhs*/, const token_literal<R>&/*rhs*/) noexcept;
+    template<typename L, typename R> friend constexpr
+    auto operator>=(const token_literal<L>&/*lhs*/, const token_literal<R>&/*rhs*/) noexcept;
 };
 
 // These must be declared in-class and defined outside of class.
@@ -163,25 +163,34 @@ auto operator>=(const token_variable<L>& lhs, const token_variable<R>& rhs) noex
 { return lhs.value_ >= rhs.value_; }
 /* --------------------------------------------------------------------------------------------- */
 
-using lparen = token_char<'('>;
-using rparen = token_char<')'>;
-using plus   = token_char<'+'>;
-using minus  = token_char<'-'>;
-using colon  = token_char<':'>;
-using comma  = token_char<','>;
-using equals = token_char<'='>;
+using lparen    = token_char<'('>;
+using rparen    = token_char<')'>;
+using plus      = token_char<'+'>;
+using minus     = token_char<'-'>;
+using colon     = token_char<':'>;
+using comma     = token_char<','>;
+using equals    = token_char<'='>;
+using eof_token = token_char< -1>;
 
-template<char Ch>
-auto make_token() noexcept
-{
-    return token_char<Ch>{};
-}
+// template<char Ch>
+// auto make_token() noexcept
+// {
+//     return token_char<Ch>{};
+// }
 
 struct def_value { static constexpr inline std::string_view value{"def"}; };
 using def = token_literal<def_value>;
+static_assert(std::is_same_v<std::string_view, def::value_type>, "unexpected def value_type");
+static_assert(std::is_same_v<std::string_view, decltype(def{}())>, "undexpected def() value_type");
 using name = token_variable<std::string>;
 static_assert(std::is_same_v<name::return_type, std::string_view>, "unexpected return type");
 static_assert(std::is_same_v<name::value_type, std::string>, "unexpected value type");
 using integer = token_variable<int>;
 
-using Token = std::variant<lparen, rparen, plus, minus, colon, comma, equals, def, name, integer>;
+template<typename T>
+using kind = std::in_place_type_t<T>;
+
+using Token = std::variant<
+                lparen, rparen, plus, minus, colon,
+                comma, equals, def, name, integer, eof_token
+                >;
