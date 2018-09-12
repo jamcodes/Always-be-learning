@@ -24,7 +24,7 @@ private:
 };
 
 template<typename Coll>
-void print_elements(const Coll& coll, std::string_view str="")
+void print_elements(const Coll& coll, const std::string_view str="")
 {
     std::cout << str;
     for(const auto& el : coll){
