@@ -26,6 +26,7 @@ TEST_F(TokenTest, StringLiteral)
 {
     const auto deftoken = Token{std::in_place_type_t<def>{}};
     ASSERT_EQ(deftoken, deftoken);
+    ASSERT_EQ(deftoken, Token{deftoken});
 
     using test_literal = token_literal<test_value>;
     using TestToken = std::variant<def, test_literal>;

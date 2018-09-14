@@ -1,6 +1,7 @@
 #include <iostream>
 #include <sstream>
 #include <utility>
+#include <type_traits>
 
 #include "Token.h"
 #include "Scanner.h"
@@ -24,9 +25,9 @@ Token Scanner::get()
     }
 
     char ch;
-    // source_.get(ch);
-    source_ >> ch;
-    if (source_.eof()) {
+    source_.get(ch);
+    // source_ >> ch;
+    if (!source_) {
         return Token{kind<eof_token>{}};
     }
 
@@ -47,29 +48,34 @@ Token Scanner::get()
             source_ >> val;
             return Token{kind<integer>{}, val};
         }
-    // case '\n':
-    //     {
-    //         while(source_.get(ch) && ch == '\n')    // skip vertical whitespace
-    //             ;
-    //         if (!source_) {
-    //             return Token{kind<eof_token>{}};
-    //         }
-    //         if (std::isspace(ch)) {
-    //             auto oss = std::ostringstream{};
-    //             oss << ch;
-    //             while (source_.get() && std::isspace(ch)) {
-    //                 oss << ch;
-    //             }
-    //             source_.putback(ch);
-    //             re
-    //         }
-    //     }
+    case '\n':
+        {
+            while(source_.get(ch) && ch == '\n') {}    // skip vertical whitespace
+            if (!source_) {
+                return Token{kind<eof_token>{}};
+            }
+            if (std::isspace(ch)) {
+                // TODO: introduce an indent type that holds the whitespace character and count
+                unsigned i{1};
+                while (source_.get(ch) && ch != '\n' && std::isspace(ch)) {
+                    ++i;
+                }
+                source_.putback(ch);
+                return Token{kind<indent>{}, i};
+            }
+        }
+        [[fallthrough]];
     default:
         {
+            if (std::isdigit(ch)) {
+                source_.putback(ch);
+                return get();
+            }
             if (std::isalpha(ch)) {
                 std::ostringstream oss;
                 oss << ch;
-                while (source_.get(ch) && (std::isalpha(ch) || std::isdigit(ch) || ch == '_')) {
+                while (source_.get(ch) &&
+                       (std::isalpha(ch) || std::isdigit(ch) || ch == '_')) {
                     oss << ch;
                 }
                 source_.putback(ch);
@@ -77,6 +83,15 @@ Token Scanner::get()
                     return Token{kind<def>{}};
                 }
                 return Token{kind<name>{}, oss.str()};
+            }
+            if (std::isspace(ch)) {
+                // ignore trailing whitespace
+                while (source_.get(ch) && ch != '\n' && std::isspace(ch)) { }
+                if (!source_) {
+                    return Token{kind<eof_token>{}};
+                }
+                source_.putback(ch);
+                return get();
             }
             throw std::runtime_error("Invalid Token");
         }
@@ -114,6 +129,5 @@ void Scanner::ignore(const Token& t)
         return;
     }
     full_ = false;
-    for (auto tok = get(); tok != t; tok = get()) {
-        }
+    for (auto tok = get(); tok != t; tok = get()) { }
 }

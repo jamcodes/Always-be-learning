@@ -42,8 +42,15 @@ struct token_literal : T
     static_assert(has_value_v<T>, "token_literal type needs to define a 'value' constant");
     using type = token_literal;
     using value_type = get_value_type_t<std::decay_t<decltype(T::value)>>;
-    constexpr operator value_type() const noexcept { return T::value; };
+    // constexpr operator value_type() const noexcept { return T::value; };
     constexpr value_type operator()() const noexcept { return T::value; };
+
+    // constexpr auto operator==(const token_literal&) noexcept { return true; }
+    // constexpr auto operator!=(const token_literal&) noexcept { return false; }
+    // constexpr auto operator<(const token_literal&) noexcept { return false; }
+    // constexpr auto operator>(const token_literal&) noexcept { return false; }
+    // constexpr auto operator<=(const token_literal&) noexcept { return true; }
+    // constexpr auto operator>=(const token_literal&) noexcept { return true; }
 
     template<typename L, typename R> friend constexpr
     auto operator==(const token_literal<L>&/*lhs*/, const token_literal<R>&/*rhs*/) noexcept;
@@ -186,11 +193,12 @@ using name = token_variable<std::string>;
 static_assert(std::is_same_v<name::return_type, std::string_view>, "unexpected return type");
 static_assert(std::is_same_v<name::value_type, std::string>, "unexpected value type");
 using integer = token_variable<int>;
+using indent = token_variable<unsigned>;
 
 template<typename T>
 using kind = std::in_place_type_t<T>;
 
 using Token = std::variant<
                 lparen, rparen, plus, minus, colon,
-                comma, equals, def, name, integer, eof_token
+                comma, equals, def, name, integer, indent, eof_token
                 >;

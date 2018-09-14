@@ -122,6 +122,7 @@ TEST_F(ScannerTest, putback_test)
     std::stringstream test_src;
     test_src << lparen::value;
     test_src << rparen::value;
+    test_src << name_bar();
     test_src.seekg(0);
 
     Scanner tstream{test_src};
@@ -137,6 +138,13 @@ TEST_F(ScannerTest, putback_test)
     tstream.putback(tt);
     tt2 = tstream.get();
     ASSERT_TRUE(std::holds_alternative<rparen>(tt2));
+    tt = tstream.get();
+    ASSERT_TRUE(std::holds_alternative<name>(tt));
+    ASSERT_EQ(name_bar, std::get<name>(tt));
+    tstream.putback(tt);
+    tt2 = tstream.get();
+    ASSERT_TRUE(std::holds_alternative<name>(tt2));
+    ASSERT_EQ(name_bar, std::get<name>(tt));
 }
 
 TEST_F(ScannerTest, ignore_test)
@@ -145,7 +153,7 @@ TEST_F(ScannerTest, ignore_test)
     test_src << lparen::value;
     test_src << rparen::value;
     test_src << plus::value;
-    test_src << minus::value;
+    test_src << name_foo();
     test_src.seekg(0);
 
     Scanner tstream{test_src};
@@ -157,8 +165,53 @@ TEST_F(ScannerTest, ignore_test)
     ASSERT_TRUE(std::holds_alternative<rparen>(tt));
     tstream.ignore(Token{kind<plus>{}});
     tt = tstream.get();
-    ASSERT_TRUE(std::holds_alternative<minus>(tt));
+    ASSERT_TRUE(std::holds_alternative<name>(tt));
+    ASSERT_EQ(name_foo, std::get<name>(tt));
 }
 
+TEST_F(ScannerTest, ignore_kind_test)
+{
+    std::stringstream test_src;
+    test_src << rparen::value;
+    test_src << val_42();
+    test_src << ' ';
+    test_src << name_bar();
+    test_src << ' ';
+    test_src << def::value;
+    test_src << rparen::value;
+    test_src << val_42();
+    test_src << name_bar();
+    test_src.seekg(0);
+
+    Scanner tstream{test_src};
+    tstream.ignore(def{});
+    auto tt = tstream.get();
+    ASSERT_TRUE(std::holds_alternative<rparen>(tt));
+    tstream.ignore(val_42);
+    tt = tstream.get();
+    ASSERT_TRUE(std::holds_alternative<name>(tt));
+    ASSERT_EQ(name_bar, std::get<name>(tt));
+}
+
+TEST_F(ScannerTest, get_indent)
+{
+    const std::string_view four_space{"    "};
+    std::stringstream test_src;
+    test_src << four_space;     // ignore
+    test_src << '\n';           // read, discard, check for indent
+    test_src << four_space;     // return indent token
+    test_src << def::value;     // return def token
+    test_src << four_space;     // ignore, return eof token
+    test_src.seekg(0);
+
+    Scanner tstream{test_src};
+    auto tt = tstream.get();
+    ASSERT_TRUE(std::holds_alternative<indent>(tt));
+    ASSERT_EQ(four_space.size(), std::get<indent>(tt));
+    tt = tstream.get();
+    ASSERT_TRUE(std::holds_alternative<def>(tt));
+    tt = tstream.get();
+    ASSERT_TRUE(std::holds_alternative<eof_token>(tt));
+}
 
 } // namespace

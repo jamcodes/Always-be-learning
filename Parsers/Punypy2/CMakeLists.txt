@@ -82,6 +82,9 @@ else()
     if(CMAKE_BUILD_TYPE MATCHES Debug)
       set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Og")
     endif()
+    if(CMAKE_CXX_COMPILER_ID MATCHES "CLANG" )
+        
+    endif()
     target_compile_options( Project_config INTERFACE
       -Wall
       -Wextra # reasonable and standard
