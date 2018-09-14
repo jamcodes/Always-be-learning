@@ -1,5 +1,6 @@
 #include <iostream>
 #include <type_traits>
+#include <variant>
 
 
 /**
@@ -142,6 +143,23 @@ template<typename List>
 static constexpr inline auto count_v = count<List>::value;
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+// Check if a type list contains the given type
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+template<typename C, typename T> struct contains_impl; // : std::false_type { };
+
+template<template<class...> class C, typename T, typename... Us>
+struct contains_impl<C<Us...>, T> : std::disjunction<std::is_same<T, Us>...> { };
+
+namespace lazy
+{
+    template<typename C, typename T>
+    struct contains : contains_impl<C,T> { };
+}
+
+template<typename C, typename T>
+static constexpr inline auto contains_v{contains_impl<C,T>::value};
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 
 int main()
 {
@@ -230,4 +248,18 @@ int main()
     using lstcnt3 = list<int, char, double>;
     static_assert(count_v<lstcnt0> == 0ull, "count failed for empty list");
     static_assert(count_v<lstcnt3> == 3ull, "count failed for list of size 3");
+
+    using lst_cns_0 = list<>;
+    using lst_cns_3 = list<int, double, char>;
+    static_assert(contains_v<lst_cns_0, double> == false, "contains failed for empty list");
+    static_assert(contains_v<lst_cns_3, double> == true, "contains failed for list of size 3");
+    static_assert(contains_v<lst_cns_3, float> == false,
+        "contains failed negative test for a list of size 3");
+
+    using test_variant = std::variant<int, double, const char*>;
+    static_assert(contains_v<test_variant, int>, "contains failed for variant");
+    static_assert(contains_v<test_variant, const char*>,
+        "contains failed for variant const char*");
+    static_assert(contains_v<test_variant, char> == false,
+        "contains failed negative test for variant");
 }
