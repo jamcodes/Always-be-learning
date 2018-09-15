@@ -15,7 +15,6 @@ static constexpr inline auto contains_v{contains_impl<C,T>::value};
 
 class Scanner
 {
-    using source_t = std::istream;
 public:
     constexpr explicit Scanner(source_t& src) noexcept
         : source_{src}
@@ -35,9 +34,9 @@ public:
     ignore(T&& t);
 
 private:
-    source_t& source_;
-    bool      full_{false};
-    Token     buffer_{};
+    std::istream& source_;
+    bool          full_{false};
+    Token         buffer_{};
 };
 
 template<typename T>

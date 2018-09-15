@@ -23,8 +23,8 @@ static_assert(std::is_same_v<const char*, std::decay_t<decltype(blabla::value)>>
 
 template<typename T>
 struct get_value_type { using type = T; };
-template<> struct get_value_type<const char*> {using type = std::string_view; };
-template<> struct get_value_type<std::string> {using type = std::string_view; };
+template<> struct get_value_type<const char*> { using type = std::string_view; };
+template<> struct get_value_type<std::string> { using type = std::string_view; };
 template<typename T>
 using get_value_type_t = typename get_value_type<T>::type;
 
@@ -179,11 +179,6 @@ using comma     = token_char<','>;
 using equals    = token_char<'='>;
 using eof_token = token_char< -1>;
 
-// template<char Ch>
-// auto make_token() noexcept
-// {
-//     return token_char<Ch>{};
-// }
 
 struct def_value { static constexpr inline std::string_view value{"def"}; };
 using def = token_literal<def_value>;
