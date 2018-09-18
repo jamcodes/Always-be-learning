@@ -189,6 +189,7 @@ endif()
 ###############################################################################
 # Build target
 ###############################################################################
+include_directories("${CMAKE_SOURCE_DIR}/../")
 foreach( target ${Sources} )
   string(REGEX MATCH "^[^ .]*" fname ${target} )
   MESSAGE( STATUS "Executable: ${fname}" )

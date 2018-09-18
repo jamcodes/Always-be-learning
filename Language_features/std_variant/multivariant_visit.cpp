@@ -1,6 +1,8 @@
 #include <iostream>
 #include <variant>
 #include <type_traits>
+#include <tuple>
+#include <utility>
 
 
 template<typename... Ts>
@@ -20,6 +22,23 @@ struct CardbordBox { };
 struct ReinforcedBox { };
 struct AmortizedBox { };
 struct BrokenBox { };
+
+
+template<typename Tuple, typename... Variants, std::size_t... Is>
+constexpr decltype(auto) match_tuple_impl(Tuple&& t, std::index_sequence<Is...>, Variants&&... vs)
+{
+    return std::visit(
+        overloaded{std::get<Is>(std::forward<Tuple>(t))...},
+        std::forward<Variants>(vs)...
+    );
+}
+
+template<typename Tuple, typename... Variants>
+constexpr decltype(auto) match_tuple(Tuple&& t, Variants&&... vs)
+{
+    using Indices = std::make_index_sequence<std::tuple_size_v<std::decay_t<Tuple>>>;
+    return match_tuple_impl(std::forward<Tuple>(t), Indices{}, std::forward<Variants>(vs)...);
+}
 
 
 int main()
