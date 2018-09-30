@@ -103,7 +103,7 @@ template<typename T>
 class token_variable
 {
 public:
-    using value_type = std::remove_reference_t<std::remove_cv_t<T>>;
+    using value_type = std::remove_cv_t<std::remove_reference_t<T>>;
     using return_type = get_value_type_t<value_type>;
     template<typename U, typename =
         std::enable_if_t<std::is_convertible_v<U, value_type> >

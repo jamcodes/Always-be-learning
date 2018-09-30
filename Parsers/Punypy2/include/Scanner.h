@@ -16,7 +16,7 @@ static constexpr inline auto contains_v{contains_impl<C,T>::value};
 class Scanner
 {
 public:
-    constexpr explicit Scanner(source_t& src) noexcept
+    constexpr explicit Scanner(std::istream& src) noexcept
         : source_{src}
         { }
 
