@@ -49,11 +49,4 @@ int main()
                       coll.end(),
                       [](int x, int y){ return y < x; });   // predicate
     print_elements(coll, "coll, first five sorted with '>': ");
-<<<<<<< HEAD
-
-
-    std::cout << "\npartial_sort_copy:\n";
-    
-=======
->>>>>>> f01ea8fa8c6e51e0ad0f43e2e2d55f5922d1d8d1
 }
