@@ -12,28 +12,12 @@ template< class RandomIt, class Compare >
 constexpr void partial_sort( RandomIt first, RandomIt middle, RandomIt last,
                              Compare comp );
 
-template< class InputIt, class RandomIt >
-constexpr RandomIt partial_sort_copy( InputIt first, InputIt last,
-                                      RandomIt d_first, RandomIt d_last );
-
-template< class InputIt, class RandomIt, class Compare >
-constexpr RandomIt partial_sort_copy( InputIt first, InputIt last,
-                                      RandomIt d_first, RandomIt d_last,
-                                      Compare comp );
-
 /*
 std::partial_sort
 Rearranges elements such that the range [first, middle) contains the sorted middle -
 first smallest elements in the range [first, last)
 The order of equal elements is not guaranteed to be preserved. The order of the remaining
 elements in the range [middle, last) is unspecified.
-
-std::partial_sort_copy
-Sorts some of the elements in the range [first, last) in ascending order,
-storing the resultin the range [d_first, d_last).
-At most d_last - d_first of the elements are placed sorted to the range [d_first, d_first + n).
-n is the number of elements to sort (n = min(last - first, d_last - d_first)).
-The order of equal elements is not guaranteed to be preserved. 
 */
 
 class gen
@@ -65,8 +49,11 @@ int main()
                       coll.end(),
                       [](int x, int y){ return y < x; });   // predicate
     print_elements(coll, "coll, first five sorted with '>': ");
+<<<<<<< HEAD
 
 
     std::cout << "\npartial_sort_copy:\n";
     
+=======
+>>>>>>> f01ea8fa8c6e51e0ad0f43e2e2d55f5922d1d8d1
 }
