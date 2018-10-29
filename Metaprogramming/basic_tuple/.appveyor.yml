@@ -1,0 +1,27 @@
+image:
+  - Visual Studio 2017
+
+configuration:
+- Release
+- Debug
+
+platform:
+  - x64
+
+clone_folder: c:\projects\basic_tuple
+
+before_build:
+- cmd: |-
+    mkdir build
+    cd build
+    cmake --version
+    cmake c:\projects\basic_tuple -G"Visual Studio 15 2017"
+
+build_script:
+- cmd: >-
+    cmake --build . --config "%configuration%"
+
+test_script:
+- cmd: |-
+    cd test
+    ctest -C %configuration% -V
