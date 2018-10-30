@@ -36,13 +36,13 @@ using TupleElement_t = typename TupleElement<I,T>::type;
 
 
 template<std::size_t I, typename U>
-inline constexpr TupleElement_t<I,U>& Get(TupleElement<I, U>& te) noexcept;
+inline constexpr TupleElement_t<I,U>& Get_impl(TupleElement<I, U>& te) noexcept;
 
 template<std::size_t I, typename U>
-inline constexpr TupleElement_t<I,U> const& Get(TupleElement<I, U> const& te) noexcept;
+inline constexpr TupleElement_t<I,U> const& Get_impl(TupleElement<I, U> const& te) noexcept;
 
 template<std::size_t I, typename U>
-inline constexpr TupleElement_t<I,U>&& Get(TupleElement<I,U>&& te) noexcept;
+inline constexpr TupleElement_t<I,U>&& Get_impl(TupleElement<I,U>&& te) noexcept;
 
 
 template<typename Indices, typename... Ts>
@@ -53,24 +53,23 @@ class Tuple_impl;
 template<std::size_t... Is, typename... Ts>
 class Tuple_impl<std::index_sequence<Is...>, Ts...> : private TupleElement<Is, Ts>...
 {
-    template<typename...> friend class Tuple;
 public:
     constexpr Tuple_impl() = default;
     template<typename... Types
         ,typename = std::enable_if_t<sizeof...(Types) == sizeof...(Ts)
-        /* && (... && std::is_constructible_v<Ts,Types>) */>>
+        && (... && std::is_constructible_v<Ts,Types>)>>
     constexpr Tuple_impl(Types&&... ts) noexcept
-        : TupleElement<Is,Types>{std::forward<Types>(ts)}... { }
+        : TupleElement<Is,Ts>{std::forward<Types>(ts)}... { }
 
 
     template<std::size_t I, typename T, typename... Types>
-    friend inline constexpr decltype(auto) GET(Tuple_impl<T, Types...>& t) noexcept;
+    friend inline constexpr decltype(auto) Get(Tuple_impl<T, Types...>& t) noexcept;
 
     template<std::size_t I, typename T, typename... Types>
-    friend inline constexpr decltype(auto) GET(Tuple_impl<T, Types...> const& t) noexcept;
+    friend inline constexpr decltype(auto) Get(Tuple_impl<T, Types...> const& t) noexcept;
 
     template<std::size_t I, typename T, typename... Types>
-    friend inline constexpr decltype(auto) GET(Tuple_impl<T, Types...>&& t) noexcept;
+    friend inline constexpr decltype(auto) Get(Tuple_impl<T, Types...>&& t) noexcept;
 };
 
 // template<typename... Types>
@@ -95,36 +94,35 @@ inline constexpr auto makeTuple(Ts&&... ts) noexcept
 }
 
 template<std::size_t I, typename U>
-inline constexpr TupleElement_t<I,U>& Get(TupleElement<I, U>& te) noexcept
+inline constexpr TupleElement_t<I,U>& Get_impl(TupleElement<I, U>& te) noexcept
 {
         return te.Get();
 }
 
 template<std::size_t I, typename U>
-inline constexpr TupleElement_t<I,U>const& Get(TupleElement<I, U> const& te) noexcept
+inline constexpr TupleElement_t<I,U>const& Get_impl(TupleElement<I, U> const& te) noexcept
 {
         return te.Get();
 }
 
 template<std::size_t I, typename U>
-inline constexpr TupleElement_t<I,U>&& Get(TupleElement<I, U>&& te) noexcept
+inline constexpr TupleElement_t<I,U>&& Get_impl(TupleElement<I, U>&& te) noexcept
 {
         return te.Get();
 }
 
-// TODO: rename GET to `get` and rename `get` to `get_impl`
 template<std::size_t I, typename T, typename... Types>
-inline constexpr decltype(auto) GET(Tuple_impl<T, Types...>& t) noexcept
+inline constexpr decltype(auto) Get(Tuple_impl<T, Types...>& t) noexcept
 {
-    return Get<I>(t);
+    return Get_impl<I>(t);
 }
 template<std::size_t I, typename T, typename... Types>
-inline constexpr decltype(auto) GET(Tuple_impl<T, Types...> const& t) noexcept
+inline constexpr decltype(auto) Get(Tuple_impl<T, Types...> const& t) noexcept
 {
-    return Get<I>(t);
+    return Get_impl<I>(t);
 }
 template<std::size_t I, typename T, typename... Types>
-inline constexpr decltype(auto) GET(Tuple_impl<T, Types...>&& t) noexcept
+inline constexpr decltype(auto) Get(Tuple_impl<T, Types...>&& t) noexcept
 {
-    return Get<I>(t);
+    return Get_impl<I>(t);
 }
