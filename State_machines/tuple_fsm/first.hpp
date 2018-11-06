@@ -21,8 +21,15 @@ template<typename List, typename T, unsigned N = 0>
 constexpr inline auto state_index_v{state_index<List,T,N>::value};
 
 
-template<typename S, typename E>
-struct transition_table { static_assert(always_false_v<S,E>, "Unhandled state transition"); };
+template<typename State, typename Event>
+struct transition_table {
+    // using type = NextState
+    // using guard_type = ...
+    // using action_type = ...
+    // static constexpr inline guard_type guard = ...
+    // static constexpr inline action_type action = ...
+    static_assert(always_false_v<State,Event>, "Unhandled state transition"); 
+};
 
 
 template<unsigned Index, typename T>
@@ -145,14 +152,59 @@ template<typename...> struct typelist { };
 template<unsigned I, typename FsmT>
 using at = decltype( Get<I>(std::declval<FsmT>()) );
 
+template<typename...> using void_t = void;
+template<typename, typename = void_t<>> struct has_action : std::false_type { };
+
+template<typename T>
+struct has_action<T, void_t<decltype(T::action)>>
+: std::true_type
+{
+};
+
+template<typename T>
+constexpr inline auto has_action_v = has_action<T>::value;
+
+template<typename, typename = void_t<>> struct has_guard : std::false_type { };
+template<typename T>
+struct has_guard<T, void_t<decltype(T::guard)>>
+: std::true_type
+{
+};
+
+template<typename T>
+constexpr inline auto has_guard_v = has_guard<T>::value;
+
+
 template<unsigned... Is, typename... States>
   template<unsigned I, typename Event>
 inline void Fsm_impl<id_sequence<Is...>, States...>::traisition(Event&& event) noexcept
 {
     using E = std::decay_t<Event>;
     using S = std::decay_t<at<I, Fsm_impl<id_sequence<Is...>, States...>>>;
-    using next_state = typename transition_table<S,E>::type;
-    state_ = state_index_v<typelist<States...>, next_state>;
+    using state_traits = transition_table<S,E>;
+    using next_state = typename state_traits::next_state;
+
+    // TODO: refactor later. Separate handlers for all cases?
+    // Could be implemented with struct partial specialization
+    if constexpr (has_guard_v<state_traits>) {
+        std::cerr << "Guard branch";
+        if (state_traits::guard()){
+            if constexpr (has_action_v<state_traits>) {
+                std::cerr << "Action under Guard branch\n";
+                state_traits::action();
+            }
+            state_ = state_index_v<typelist<States...>, next_state>;
+        }
+    }
+    else if constexpr (has_action_v<state_traits>) {
+        std::cerr << "Action branch\n";
+        state_traits::action();
+        state_ = state_index_v<typelist<States...>, next_state>;
+    }
+    else {
+        std::cerr << "No guard no action branch\n";
+        state_ = state_index_v<typelist<States...>, next_state>;
+    }
 }
 
 
@@ -176,6 +228,9 @@ inline constexpr void handle_event(FsmState<I,U>&& fs, Event&& event) noexcept
 
 template<typename T> struct identity { using type = T; };
 
+// TODO: Could clean this up - no need to pass index to transition.
+// Could pass the next state here
+// Could also check for guard and action here.
 template<typename Indices, typename... States, typename Event, unsigned Idx, unsigned... Idxs>
 inline void dispatch_event(Fsm_impl<Indices, States...>& fsm, Event&& event, id_sequence<Idx, Idxs...>) noexcept
 {

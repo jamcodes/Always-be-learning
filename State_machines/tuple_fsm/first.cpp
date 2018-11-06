@@ -32,9 +32,13 @@ struct StateB
     }
 };
 
-template<> struct transition_table<StateA,EventA> { using type = StateB; };
-template<> struct transition_table<StateA,EventB> { using type = StateB; };
-template<typename Event> struct transition_table<StateB,Event> { using type = StateA; };
+template<> struct transition_table<StateA,EventA> {
+    using next_state = StateB;
+    static inline const auto action = []()mutable noexcept{ std::cerr << "StateA,EventA action\n"; };
+    using action_type = decltype(action);
+    };
+template<> struct transition_table<StateA,EventB> { using next_state = StateB; };
+template<typename Event> struct transition_table<StateB,Event> { using next_state = StateA; };
 // template<> struct transition_table<StateB,EventB> { using type = StateA; };
 
 
@@ -43,7 +47,7 @@ int main()
 {
     Fsm<StateA, StateB> testfsm{};
     testfsm.dispatch(EventA{});
-    testfsm.dispatch(EventB{});
+    testfsm.dispatch(EventA{});
     testfsm.dispatch(EventA{});
     testfsm.dispatch(EventB{});
 }
