@@ -155,6 +155,8 @@ using at = decltype( Get<I>(std::declval<FsmT>()) );
 template<typename...> using void_t = void;
 template<typename, typename = void_t<>> struct has_action : std::false_type { };
 
+template<typename...> class Fsm;
+
 template<typename T>
 struct has_action<T, void_t<decltype(T::action)>>
 : std::true_type
@@ -164,15 +166,42 @@ struct has_action<T, void_t<decltype(T::action)>>
 template<typename T>
 constexpr inline auto has_action_v = has_action<T>::value;
 
+template<typename T> struct is_valid_action : std::false_type { };
+template<template<typename...>class F, typename R, typename... Args>
+struct is_valid_action< R(F<Args...>) >
+    : std::conjunction<std::is_same<R,void>, std::is_same<F<Args...>&,Fsm<Args...>&>>
+{
+};
+
+template<typename T>
+constexpr inline auto is_valid_action_v{is_valid_action<T>::value};
+
 template<typename, typename = void_t<>> struct has_guard : std::false_type { };
 template<typename T>
-struct has_guard<T, void_t<decltype(T::guard)>>
-: std::true_type
+struct has_guard<T, void_t<decltype(T::guard)>> : std::true_type
 {
 };
 
 template<typename T>
 constexpr inline auto has_guard_v = has_guard<T>::value;
+
+template<typename T>
+struct is_valid_guard : std::is_same<decltype(std::declval<T>()()),bool> { };
+
+template<template<typename...>class F, typename R, typename... Args>
+struct is_valid_guard< R(F<Args...>&) >
+    : std::conjunction<std::is_same<R,bool>, std::is_same<F<Args...>&,Fsm<Args...>&>>
+{
+};
+
+template<typename R>
+struct is_valid_guard< R() > : std::is_same<R,bool> { };
+
+template<typename R>
+struct is_valid_guard< R(*)() >: std::is_same<R,bool> { };
+
+template<typename T>
+constexpr inline auto is_valid_guard_v{is_valid_guard<T>::value};
 
 
 template<unsigned... Is, typename... States>
@@ -187,18 +216,19 @@ inline void Fsm_impl<id_sequence<Is...>, States...>::traisition(Event&& event) n
     // TODO: refactor later. Separate handlers for all cases?
     // Could be implemented with struct partial specialization
     if constexpr (has_guard_v<state_traits>) {
-        std::cerr << "Guard branch";
+        static_assert(is_valid_guard_v<decltype(state_traits::guard)>);
+        std::cerr << "Guard branch\n";
         if (state_traits::guard()){
             if constexpr (has_action_v<state_traits>) {
                 std::cerr << "Action under Guard branch\n";
-                state_traits::action();
+                state_traits::action(static_cast<Fsm<States...>&>(*this));
             }
             state_ = state_index_v<typelist<States...>, next_state>;
         }
     }
     else if constexpr (has_action_v<state_traits>) {
         std::cerr << "Action branch\n";
-        state_traits::action();
+        state_traits::action(static_cast<Fsm<States...>&>(*this));
         state_ = state_index_v<typelist<States...>, next_state>;
     }
     else {
