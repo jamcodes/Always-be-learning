@@ -166,15 +166,11 @@ struct has_action<T, void_t<decltype(T::action)>>
 template<typename T>
 constexpr inline auto has_action_v = has_action<T>::value;
 
-template<typename T> struct is_valid_action : std::false_type { };
-template<template<typename...>class F, typename R, typename... Args>
-struct is_valid_action< R(F<Args...>) >
-    : std::conjunction<std::is_same<R,void>, std::is_same<F<Args...>&,Fsm<Args...>&>>
-{
-};
+template<typename T, typename... Args>
+struct is_valid_action : std::is_invocable_r<void, T, Args...> { };
 
-template<typename T>
-constexpr inline auto is_valid_action_v{is_valid_action<T>::value};
+template<typename T, typename... Args>
+constexpr inline auto is_valid_action_v{is_valid_action<T, Args...>::value};
 
 template<typename, typename = void_t<>> struct has_guard : std::false_type { };
 template<typename T>
@@ -185,23 +181,11 @@ struct has_guard<T, void_t<decltype(T::guard)>> : std::true_type
 template<typename T>
 constexpr inline auto has_guard_v = has_guard<T>::value;
 
-template<typename T>
-struct is_valid_guard : std::is_same<decltype(std::declval<T>()()),bool> { };
+template<typename T, typename... Args>
+struct is_valid_guard : std::is_invocable_r<bool, T, Args...> { };
 
-template<template<typename...>class F, typename R, typename... Args>
-struct is_valid_guard< R(F<Args...>&) >
-    : std::conjunction<std::is_same<R,bool>, std::is_same<F<Args...>&,Fsm<Args...>&>>
-{
-};
-
-template<typename R>
-struct is_valid_guard< R() > : std::is_same<R,bool> { };
-
-template<typename R>
-struct is_valid_guard< R(*)() >: std::is_same<R,bool> { };
-
-template<typename T>
-constexpr inline auto is_valid_guard_v{is_valid_guard<T>::value};
+template<typename T, typename... Args>
+constexpr inline auto is_valid_guard_v{is_valid_guard<T, Args...>::value};
 
 
 template<unsigned... Is, typename... States>
@@ -220,8 +204,12 @@ inline void Fsm_impl<id_sequence<Is...>, States...>::traisition(Event&& event) n
         std::cerr << "Guard branch\n";
         if (state_traits::guard()){
             if constexpr (has_action_v<state_traits>) {
+                static_assert(is_valid_action_v<decltype(state_traits::action), Fsm<States...>&>);
                 std::cerr << "Action under Guard branch\n";
                 state_traits::action(static_cast<Fsm<States...>&>(*this));
+            }
+            if constexpr (has_exit_v<state_traits>) {
+
             }
             state_ = state_index_v<typelist<States...>, next_state>;
         }
@@ -261,11 +249,24 @@ template<typename T> struct identity { using type = T; };
 // TODO: Could clean this up - no need to pass index to transition.
 // Could pass the next state here
 // Could also check for guard and action here.
+// TODO: The order of execution should be:
+// 1. evaluate the guard condition (if present), proceed with transition only if `true`
+// 2. execute exit action
+// 3. execute transition action
+// 4. execute entry action
 template<typename Indices, typename... States, typename Event, unsigned Idx, unsigned... Idxs>
 inline void dispatch_event(Fsm_impl<Indices, States...>& fsm, Event&& event, id_sequence<Idx, Idxs...>) noexcept
 {
     if (Idx == fsm.state_) {
+        // TODO: check guard first
         // handle_event<Idx>(fsm, std::forward<Event>(event));
+        using event_t = std::decay_t<Event>;
+        using state_t = std::decay_t<at<I, Fsm_impl<Indices, States...>>>;
+        using state_traits = transition_table<S,E>;
+        auto&& state = Get<Idx>(fsm);
+        if constexpr (has_exit_v<state_t>) {
+            state.exit();
+        }
         Get<Idx>(fsm).handle_event(std::forward<Event>(event));
         fsm.template traisition<Idx>(std::forward<Event>(event));
     }
