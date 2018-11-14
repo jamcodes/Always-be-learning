@@ -86,4 +86,28 @@ template<typename T>
 struct has_next_state<T, void_t<typename T::next_state>> : std::true_type { };
 template<typename T>
 constexpr inline auto has_next_state_v{has_next_state<T>::value};
+
+template<typename T, bool = has_next_state_v<T>>
+struct Next_stateT { };
+template<typename Traits>
+struct Next_stateT<Traits, true> { using type = typename Traits::next_state; };
+template<typename Traits>
+using Next_state = typename Next_stateT<Traits>::type;
+
+template<typename T, typename = void_t<>>
+struct has_exit : std::false_type { };
+template<template<typename,typename>class Traits, typename State, typename Event>
+struct has_exit<Traits<State,Event>, void_t<decltype(std::declval<State>().exit())>>
+    : std::true_type { };
+template<typename T>
+constexpr inline auto has_exit_v{has_exit<T>::value};
+
+template<typename T, bool = has_next_state_v<T>, typename = void_t<>>
+struct has_entry : std::false_type { };
+template<typename Traits>
+struct has_entry<Traits, true,
+                 void_t<decltype(std::declval<typename Traits::next_state>().entry())>>
+    : std::true_type { };
+template<typename T>
+constexpr inline auto has_entry_v{has_entry<T>::value};
 /* --------------------------------------------------------------------------------------------- */
