@@ -79,8 +79,6 @@ public:
     template<typename TTraits, bool HasGuard, bool HasAction, bool HasNextState,
              bool HasExit, bool HasEntry>
     friend struct transition;
-    // template<size_type Idx, typename Event>
-    // constexpr inline void transition(Event&& event) noexcept;
 
     template<size_type Idx, typename Idxs, typename... Sts>
     friend inline constexpr decltype(auto) Get(Fsm_impl<Idxs, Sts...>&) noexcept;
@@ -102,7 +100,6 @@ class Fsm : public Fsm_impl<Make_index_sequence<sizeof...(States)>, States...>
     using Indices = Make_index_sequence<sizeof...(States)>;
     using Base = Fsm_impl<Indices, States...>;
 public:
-    using State_list = typelist<States...>;
     constexpr Fsm() noexcept = default;
 
     using Base::Base;
@@ -163,7 +160,7 @@ using state_at = decltype( Get<Idx>(std::declval<FsmT>()) );
 
 /* dispatch */
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-template<typename TTraits, /* typename FsmT, typename State, */
+template<typename TTraits,
         bool = has_guard_v<TTraits>, bool = has_action_v<TTraits>, bool = has_next_state_v<TTraits>,
         bool = has_exit_v<TTraits>, bool = has_entry_v<TTraits>>
 struct transition {
@@ -175,28 +172,11 @@ struct transition {
 };
 
 // let this case fall back to the default for now
-// template<typename TTraits, /* typename FsmT, typename State, */ bool HasExit, bool HasEntry>
-// struct transition<TTraits, /* FsmT, State, */ false, false, false, HasExit, HasEntry> {
+// template<typename TTraits, bool HasExit, bool HasEntry>
+// struct transition<TTraits, true, false, false, HasExit, HasEntry> {
 //     // has a guard, but no action, no next state -> nop
 //     // warn against this with a static_assert?
 // };
-
-// Guard, Action, No next_state
-// This is not compliant with UML -> execute Action if Guard is true,
-// but Action will be executed without calling the exit action and no state change will occur
-template<typename TTraits, /* typename FsmT, typename State, */ bool HasExit, bool HasEntry>
-struct transition<TTraits, /* FsmT, State, */ true, true, false, HasExit, HasEntry> {
-    template<typename FsmT_, typename State_>
-    constexpr inline void operator()(FsmT_&& fsm, State_&& state) const noexcept
-    {
-        static_assert(is_valid_guard_v<decltype(TTraits::guard)>);
-        static_assert(is_valid_action_v<decltype(TTraits::action)>);
-        std::cerr << "+Guard, +Action, -NextState, ?Exit, ?Entry\n";
-        if (TTraits::guard()) {
-            TTraits::action();
-        }
-    }
-};
 
 // Guard, No Action, next_state, No Exit, No Entry
 template<typename TTraits>
@@ -243,6 +223,23 @@ struct transition<TTraits, true, false, true, true, true> {
             constexpr auto next_state_idx = state_index_v<fsm_statelist, Next_state<TTraits>>;
             std::forward<FsmT>(fsm).state_ = next_state_idx;
             Get<next_state_idx>(std::forward<FsmT>(fsm)).entry();
+        }
+    }
+};
+
+// Guard, Action, No next_state, ?Exit, ?Entry
+// This is not compliant with UML -> execute Action if Guard is true,
+// but Action will be executed without calling the exit action and no state change will occur
+template<typename TTraits, /* typename FsmT, typename State, */ bool HasExit, bool HasEntry>
+struct transition<TTraits, /* FsmT, State, */ true, true, false, HasExit, HasEntry> {
+    template<typename FsmT_, typename State_>
+    constexpr inline void operator()(FsmT_&& fsm, State_&& state) const noexcept
+    {
+        static_assert(is_valid_guard_v<decltype(TTraits::guard)>);
+        static_assert(is_valid_action_v<decltype(TTraits::action)>);
+        std::cerr << "+Guard, +Action, -NextState, ?Exit, ?Entry\n";
+        if (TTraits::guard()) {
+            TTraits::action();
         }
     }
 };
@@ -363,6 +360,11 @@ struct transition<TTraits, false, true, true, true, true> {
     }
 };
 
+// 1. Evaluate the guard condition associated with the transition and perform the following steps
+//    only if the guard evaluates to TRUE.
+// 2. Exit the source state configuration.
+// 3. Execute the actions associated with the transition.
+// 4. Enter the target state configuration.
 // dispatch_event using `transition` for branching during event handling
 template<typename FsmT, typename Event, size_type Idx, size_type... Idxs>
 constexpr inline void
@@ -384,88 +386,5 @@ dispatch_event(FsmT&& fsm, Event&& event, Index_sequence<Idx,Idxs...>) noexcept
     }
 }
 
-/* 
-// Standalone dispatch_event
-// 1. Evaluate the guard condition associated with the transition and perform the following steps
-//    only if the guard evaluates to TRUE.
-// 2. Exit the source state configuration.
-// 3. Execute the actions associated with the transition.
-// 4. Enter the target state configuration.
-template<typename FsmT, typename Event, size_type Idx, size_type... Idxs>
-constexpr inline void
-dispatch_event(FsmT&& fsm, Event&& event, Index_sequence<Idx,Idxs...>) noexcept
-{
-    if (Idx == fsm.state_) {
-        using state_t = std::decay_t<state_at<Idx, FsmT>>;
-        using event_t = std::decay_t<Event>;
-        // using statelist_t = typename std::decay_t<FsmT>::State_list;
-        using fsm_statelist = get_state_list_t<std::decay_t<FsmT>>;
-        using transition_traits = transition_table<state_t, event_t>;
-
-        auto&& state = Get<Idx>(std::forward<FsmT>(fsm));
-        state.handle_event(std::forward<Event>(event));
-
-        if constexpr (has_guard_v<transition_traits>) {
-            static_assert(is_valid_guard_v<decltype(transition_traits::guard)>);
-            std::cerr << "Guard branch\n";
-            if (transition_traits::guard()) {
-                if constexpr (has_exit_v<transition_traits> &&
-                              has_next_state_v<transition_traits>) {
-                    state.exit();
-                }
-                // ideally we should move to a "non-state" state
-                if constexpr (has_action_v<transition_traits>) {
-                    static_assert(is_valid_action_v<decltype(transition_traits::action)>);
-                    std::cerr << "Action under Guard branch\n";
-                    transition_traits::action();
-                }
-                if constexpr (has_next_state_v<transition_traits>) {
-                    constexpr auto next_state_idx =
-                        state_index_v<fsm_statelist, Next_state<transition_traits>>;
-                    // fsm.state_ = state_index_v<fsm_statelist, typename transition_traits::next_state>;
-                    fsm.state_ = next_state_idx;
-                    if constexpr (has_entry_v<transition_traits>) {
-                        Get<next_state_idx>(std::forward<FsmT>(fsm)).entry();
-                    }
-                }
-            }
-        }
-        else if constexpr (has_action_v<transition_traits>) {
-            std::cerr << "Action branch\n";
-            if constexpr (has_exit_v<transition_traits> &&
-                          has_next_state_v<transition_traits>) {
-                state.exit();
-            }
-            transition_traits::action();
-            if constexpr (has_next_state_v<transition_traits>) {
-                constexpr auto next_state_idx =
-                    state_index_v<fsm_statelist, Next_state<transition_traits>>;
-                fsm.state_ = next_state_idx;
-                if constexpr (has_entry_v<transition_traits>) {
-                    Get<next_state_idx>(std::forward<FsmT>(fsm)).entry();
-                }
-            }
-        }
-        else {
-            std::cerr << "No Guard, no Action branch\n";
-            if constexpr (has_next_state_v<transition_traits>) {
-                constexpr auto next_state_idx =
-                    state_index_v<fsm_statelist, Next_state<transition_traits>>;
-                fsm.state_ = next_state_idx;
-                if constexpr (has_entry_v<transition_traits>) {
-                    Get<next_state_idx>(std::forward<FsmT>(fsm)).entry();
-                }
-            }
-        }
-    }
-    else if constexpr (sizeof...(Idxs) != 0) {
-        dispatch_event(
-            std::forward<FsmT>(fsm), std::forward<Event>(event), Index_sequence<Idxs...>{});
-    }
-    else {
-        // static_assert(always_false_v<identity<Index_sequence<Idxs...>>>);
-    }
-}
- */
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 /* --------------------------------------------------------------------------------------------- */
