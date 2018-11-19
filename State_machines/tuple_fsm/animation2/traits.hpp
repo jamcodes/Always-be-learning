@@ -61,19 +61,6 @@ struct get_state_list<FsmT<T, States...>> { using type = typelist<States...>; };
 template<typename T>
 using get_state_list_t = typename get_state_list<T>::type;
 
-// template<typename State, typename FsmT, typename Event, typename = void_t<>>
-// struct has_handle_event : std::false_type { };
-// template<typename State, typename FsmT, typename Event>
-// struct has_handle_event<State, FsmT, Event,
-//     void_t<decltype(
-//         std::declval<State>().handle_event(std::declval<FsmT>(), std::declval<Event>())
-//         )>>
-//     : std::true_type
-// {
-// };
-// template<typename State, typename FsmT, typename Event>
-// constexpr inline auto has_handle_event_v{has_handle_event<State, FsmT, Event>::value};
-
 template<typename State, typename Void, typename... Args>
 struct has_handle_event_impl : std::false_type { };
 template<typename State, typename... Args>
@@ -85,8 +72,6 @@ struct has_handle_event_impl<State,
 };
 template<typename State, typename... Args>
 struct has_handle_event : has_handle_event_impl<State, void, Args...> { };
-// template<typename State, typename... Args>
-// struct has_handle_event : std::is_invocable<State, Args...> { };
 template<typename State, typename... Args>
 constexpr inline auto has_handle_event_v{has_handle_event<State,Args...>::value};
 
@@ -99,8 +84,6 @@ template<typename T>
 constexpr inline auto has_action_v{has_action<T>::value};
 template<typename T, typename... Args>
 struct is_valid_action : std::is_invocable_r<void, T, Args...> { };
-// template<typename T>
-// struct is_valid_action<T> : std::is_invocable_r<void, T> { };
 template<typename T, typename... Args>
 constexpr inline auto is_valid_action_v{is_valid_action<T,Args...>::value};
 
@@ -112,8 +95,6 @@ template<typename T>
 constexpr inline auto has_guard_v{has_guard<T>::value};
 template<typename T, typename... Args>
 struct is_valid_guard : std::is_invocable_r<bool, T, Args...> { };
-// template<typename T>
-// struct is_valid_guard<T> : std::is_invocable_r<bool, T> { };
 template<typename T, typename... Args>
 constexpr inline auto is_valid_guard_v{is_valid_guard<T,Args...>::value};
 
