@@ -184,7 +184,7 @@ struct transition {
     // default - all false -> nop
     template<typename FsmT, typename State>
     constexpr inline void operator()(FsmT&&, State&&) const noexcept {
-        std::cerr << "-Guard, -Action, -NextState, -Exit, -Entry\n";
+        // std::cerr << "-Guard, -Action, -NextState, -Exit, -Entry\n";
     }
 };
 
@@ -202,7 +202,7 @@ struct transition<TTraits, FSMT, true, false, true, false, false> {
     constexpr inline void operator()(FsmT&& fsm, State&&) const noexcept
     {
         static_assert(is_valid_guard_v<decltype(TTraits::guard), decltype(fsm.derived())>);
-        std::cerr << "+Guard, -Action, +NextState, -Exit, -Entry\n";
+        // std::cerr << "+Guard, -Action, +NextState, -Exit, -Entry\n";
         using fsm_statelist = get_state_list_t<std::decay_t<FsmT>>;
         if (TTraits::guard(fsm.derived())) {
             std::forward<FsmT>(fsm).state_ = state_index_v<fsm_statelist, Next_state<TTraits>>;
@@ -217,7 +217,7 @@ struct transition<TTraits, FSMT, true, false, true, true, false> {
     constexpr inline void operator()(FsmT&& fsm, State&& state) const noexcept
     {
         static_assert(is_valid_guard_v<decltype(TTraits::guard), decltype(fsm.derived())>);
-        std::cerr << "+Guard, -Action, +NextState, +Exit, -Entry\n";
+        // std::cerr << "+Guard, -Action, +NextState, +Exit, -Entry\n";
         using fsm_statelist = get_state_list_t<std::decay_t<FsmT>>;
         if (TTraits::guard(fsm.derived())) {
             std::forward<State>(state).exit(fsm.derived());
@@ -233,7 +233,7 @@ struct transition<TTraits, FSMT, true, false, true, false, true> {
     constexpr inline void operator()(FsmT&& fsm, State&& state) const noexcept
     {
         static_assert(is_valid_guard_v<decltype(TTraits::guard), decltype(fsm.derived())>);
-        std::cerr << "+Guard, -Action, +NextState, -Exit, +Entry\n";
+        // std::cerr << "+Guard, -Action, +NextState, -Exit, +Entry\n";
         using fsm_statelist = get_state_list_t<std::decay_t<FsmT>>;
         if (TTraits::guard(fsm.derived())) {
             constexpr auto next_state_idx = state_index_v<fsm_statelist, Next_state<TTraits>>;
@@ -250,7 +250,7 @@ struct transition<TTraits, FSMT, true, false, true, true, true> {
     constexpr inline void operator()(FsmT&& fsm, State&& state) const noexcept
     {
         static_assert(is_valid_guard_v<decltype(TTraits::guard), decltype(fsm.derived())>);
-        std::cerr << "+Guard, -Action, +NextState, +Exit, +Entry\n";
+        // std::cerr << "+Guard, -Action, +NextState, +Exit, +Entry\n";
         using fsm_statelist = get_state_list_t<std::decay_t<FsmT>>;
         if (TTraits::guard(fsm.derived())) {
             std::forward<State>(state).exit(fsm.derived());
@@ -271,7 +271,7 @@ struct transition<TTraits, FSMT, true, true, false, HasExit, HasEntry> {
     {
         static_assert(is_valid_guard_v<decltype(TTraits::guard), decltype(fsm.derived())>);
         static_assert(is_valid_action_v<decltype(TTraits::action), FsmT>);
-        std::cerr << "+Guard, +Action, -NextState, ?Exit, ?Entry\n";
+        // std::cerr << "+Guard, +Action, -NextState, ?Exit, ?Entry\n";
         if (TTraits::guard(fsm.derived())) {
             TTraits::action(fsm.derived());
         }
@@ -286,7 +286,7 @@ struct transition<TTraits, FSMT, true, true, true, false, false> {
     {
         static_assert(is_valid_guard_v<decltype(TTraits::guard), decltype(fsm.derived())>);
         static_assert(is_valid_action_v<decltype(TTraits::action), FsmT>);
-        std::cerr << "+Guard, +Action, +NextState, -Exit, -Entry\n";
+        // std::cerr << "+Guard, +Action, +NextState, -Exit, -Entry\n";
         using fsm_statelist = get_state_list_t<std::decay_t<FsmT>>;
         if (TTraits::guard(fsm.derived())) {
             TTraits::action(fsm.derived());
@@ -303,7 +303,7 @@ struct transition<TTraits, FSMT, true, true, true, true, false> {
     {
         static_assert(is_valid_guard_v<decltype(TTraits::guard), decltype(fsm.derived())>);
         static_assert(is_valid_action_v<decltype(TTraits::guard), decltype(fsm.derived())>);
-        std::cerr << "+Guard, +Action, +NextState, +Exit, -Entry\n";
+        // std::cerr << "+Guard, +Action, +NextState, +Exit, -Entry\n";
         using fsm_statelist = get_state_list_t<std::decay_t<FsmT>>;
         if (TTraits::guard(fsm.derived())) {
             std::forward<State>(state).exit(fsm.derived());
@@ -321,7 +321,7 @@ struct transition<TTraits, FSMT, true, true, true, false, true> {
     {
         static_assert(is_valid_guard_v<decltype(TTraits::guard), decltype(fsm.derived())>);
         static_assert(is_valid_action_v<decltype(TTraits::action), FsmT>);
-        std::cerr << "+Guard, +Action, +NextState, -Exit, +Entry\n";
+        // std::cerr << "+Guard, +Action, +NextState, -Exit, +Entry\n";
         using fsm_statelist = get_state_list_t<std::decay_t<FsmT>>;
         if (TTraits::guard(fsm.derived())) {
             TTraits::action(fsm.derived());
@@ -340,7 +340,7 @@ struct transition<TTraits, FSMT, true, true, true, true, true> {
     {
         static_assert(is_valid_guard_v<decltype(TTraits::guard), decltype(fsm.derived())>);
         static_assert(is_valid_action_v<decltype(TTraits::action), FsmT>);
-        std::cerr << "+Guard, +Action, +NextState, +Exit, +Entry\n";
+        // std::cerr << "+Guard, +Action, +NextState, +Exit, +Entry\n";
         using fsm_statelist = get_state_list_t<std::decay_t<FsmT>>;
         if (TTraits::guard(fsm.derived())) {
             std::forward<State>(state).exit(fsm.derived());
@@ -359,7 +359,7 @@ struct transition<TTraits, FSMT, false, true, false, HasExit, HasEntry> {
     constexpr inline void operator()(FsmT&& fsm, State&&) const noexcept
     {
         static_assert(is_valid_action_v<decltype(TTraits::action), FsmT>);
-        std::cerr << "-Guard, +Action, -NextState, ?Exit, ?Entry\n";
+        // std::cerr << "-Guard, +Action, -NextState, ?Exit, ?Entry\n";
         TTraits::action(fsm.derived());
     }
 };
@@ -371,7 +371,7 @@ struct transition<TTraits, FSMT, false, true, true, false, false> {
     constexpr inline void operator()(FsmT&& fsm, State&&) const noexcept
     {
         static_assert(is_valid_action_v<decltype(TTraits::action), FsmT>);
-        std::cerr << "-Guard, +Action, +NextState, -Exit, -Entry\n";
+        // std::cerr << "-Guard, +Action, +NextState, -Exit, -Entry\n";
         using fsm_statelist = get_state_list_t<std::decay_t<FsmT>>;
         TTraits::action(fsm.derived());
         std::forward<FsmT>(fsm).state_ = state_index_v<fsm_statelist, Next_state<TTraits>>;
@@ -385,7 +385,7 @@ struct transition<TTraits, FSMT, false, true, true, true, false> {
     constexpr inline void operator()(FsmT&& fsm, State&& state) const noexcept
     {
         static_assert(is_valid_action_v<decltype(TTraits::action), FsmT>);
-        std::cerr << "-Guard, +Action, +NextState, +Exit, -Entry\n";
+        // std::cerr << "-Guard, +Action, +NextState, +Exit, -Entry\n";
         using fsm_statelist = get_state_list_t<std::decay_t<FsmT>>;
         std::forward<State>(state).exit(fsm.derived());
         TTraits::action(fsm.derived());
@@ -400,7 +400,7 @@ struct transition<TTraits, FSMT, false, true, true, false, true> {
     constexpr inline void operator()(FsmT&& fsm, State&&) const noexcept
     {
         static_assert(is_valid_action_v<decltype(TTraits::action), FsmT>);
-        std::cerr << "-Guard, +Action, +NextState, -Exit, +Entry\n";
+        // std::cerr << "-Guard, +Action, +NextState, -Exit, +Entry\n";
         using fsm_statelist = get_state_list_t<std::decay_t<FsmT>>;
         TTraits::action(fsm.derived());
         constexpr auto next_state_idx = state_index_v<fsm_statelist, Next_state<TTraits>>;
@@ -416,7 +416,7 @@ struct transition<TTraits, FSMT, false, true, true, true, true> {
     constexpr inline void operator()(FsmT&& fsm, State&& state) const noexcept
     {
         static_assert(is_valid_action_v<decltype(TTraits::action), FsmT>);
-        std::cerr << "-Guard, +Action, +NextState, +Exit, +Entry\n";
+        // std::cerr << "-Guard, +Action, +NextState, +Exit, +Entry\n";
         using fsm_statelist = get_state_list_t<std::decay_t<FsmT>>;
         std::forward<State>(state).exit(fsm.derived());
         TTraits::action(fsm.derived());
@@ -432,7 +432,7 @@ struct transition<TTraits, FSMT, false, false, true, false, false> {
     template<typename FsmT, typename State>
     constexpr inline void operator()(FsmT&& fsm, State&&) const noexcept
     {
-        std::cerr << "-Guard, -Action, +NextState, -Exit, -Entry\n";
+        // std::cerr << "-Guard, -Action, +NextState, -Exit, -Entry\n";
         using fsm_statelist = get_state_list_t<std::decay_t<FsmT>>;
         std::forward<FsmT>(fsm).state_ = state_index_v<fsm_statelist, Next_state<TTraits>>;
     }
@@ -444,7 +444,7 @@ struct transition<TTraits, FSMT, false, false, true, true, false> {
     template<typename FsmT, typename State>
     constexpr inline void operator()(FsmT&& fsm, State&& state) const noexcept
     {
-        std::cerr << "-Guard, -Action, +NextState, +Exit, -Entry\n";
+        // std::cerr << "-Guard, -Action, +NextState, +Exit, -Entry\n";
         using fsm_statelist = get_state_list_t<std::decay_t<FsmT>>;
         std::forward<State>(state).exit(fsm.derived());
         std::forward<FsmT>(fsm).state_ = state_index_v<fsm_statelist, Next_state<TTraits>>;
@@ -457,7 +457,7 @@ struct transition<TTraits, FSMT, false, false, true, false, true> {
     template<typename FsmT, typename State>
     constexpr inline void operator()(FsmT&& fsm, State&&) const noexcept
     {
-        std::cerr << "-Guard, -Action, +NextState, -Exit, +Entry\n";
+        // std::cerr << "-Guard, -Action, +NextState, -Exit, +Entry\n";
         using fsm_statelist = get_state_list_t<std::decay_t<FsmT>>;
         constexpr auto next_state_idx = state_index_v<fsm_statelist, Next_state<TTraits>>;
         fsm.state_ = next_state_idx;
@@ -471,7 +471,7 @@ struct transition<TTraits, FSMT, false, false, true, true, true> {
     template<typename FsmT, typename State>
     constexpr inline void operator()(FsmT&& fsm, State&& state) const noexcept
     {
-        std::cerr << "-Guard, -Action, +NextState, +Exit, +Entry\n";
+        // std::cerr << "-Guard, -Action, +NextState, +Exit, +Entry\n";
         using fsm_statelist = get_state_list_t<std::decay_t<FsmT>>;
         std::forward<State>(state).exit(fsm.derived());
         constexpr auto next_state_idx = state_index_v<fsm_statelist, Next_state<TTraits>>;
@@ -494,10 +494,10 @@ dispatch_event(FsmT&& fsm, Event&& event, Index_sequence<Idx,Idxs...>) noexcept
         using state_t = std::decay_t<state_at<Idx, FsmT>>;
         using event_t = std::decay_t<Event>;
         using transition_traits = transition_table<state_t, event_t>;
-        std::cerr << "state index = " << Idx << "\n";
+        // std::cerr << "state index = " << Idx << "\n";
         auto&& state = Get<Idx>(std::forward<FsmT>(fsm));
         if constexpr (has_handle_event_v<state_t, decltype(fsm.derived()), Event>) {
-            std::cerr << "has_handle_event == true\n";
+            // std::cerr << "has_handle_event == true\n";
             state.handle_event(fsm.derived(), std::forward<Event>(event));
         }
         transition<transition_traits, decltype(fsm.derived())>{}(

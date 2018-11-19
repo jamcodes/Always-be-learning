@@ -22,7 +22,7 @@ template<size_type Idx, typename State>
 class FsmState
 {
 private:
-    State value_{};
+    // State value_{};
 public:
     using type = State;
 
@@ -34,14 +34,14 @@ public:
     constexpr FsmState& operator=(FsmState&&) noexcept = default;
     ~FsmState() noexcept = default;
 
-    template<typename U
-        /* , typename = std::enable_if_t<!std::is_same_v<FsmState<...>,std::decay_t<U>>> */>
-    constexpr FsmState(U&& fvalue) noexcept(std::is_nothrow_constructible_v<State,U>)
-        : value_{std::forward<U>(fvalue)} { }
+    // template<typename U
+    //     /* , typename = std::enable_if_t<!std::is_same_v<FsmState<...>,std::decay_t<U>>> */>
+    // constexpr FsmState(U&& fvalue) noexcept(std::is_nothrow_constructible_v<State,U>)
+    //     : value_{std::forward<U>(fvalue)} { }
 
-    constexpr State&& Get() && noexcept { return std::move(value_); }
-    constexpr State& Get() & noexcept { return value_; }
-    constexpr State const& Get() const& noexcept { return value_; }
+    // constexpr State&& Get() && noexcept { return std::move(value_); }
+    // constexpr State& Get() & noexcept { return value_; }
+    // constexpr State const& Get() const& noexcept { return value_; }
 };
 
 template<size_type Idx, typename State>
@@ -91,12 +91,12 @@ public:
     template<typename TTraits, typename FsmT, bool HasExit>      friend struct fsm_exit;
     template<typename TTraits, typename FsmT, bool HasEntry>     friend struct fsm_entry;
 
-    template<size_type Idx, typename Idxs, typename... Sts>
-    friend inline constexpr decltype(auto) Get(Fsm_impl<Idxs, Sts...>&) noexcept;
-    template<size_type Idx, typename Idxs, typename... Sts>
-    friend inline constexpr decltype(auto) Get(Fsm_impl<Idxs, Sts...> const&) noexcept;
-    template<size_type Idx, typename Idxs, typename... Sts>
-    friend inline constexpr decltype(auto) Get(Fsm_impl<Idxs, Sts...>&&) noexcept;
+    // template<size_type Idx, typename Idxs, typename... Sts>
+    // friend inline constexpr FsmState_t<Idx,State>& Get(Fsm_impl<Idxs, Sts...>&) noexcept;
+    // template<size_type Idx, typename Idxs, typename... Sts>
+    // friend inline constexpr FsmState_t<Idx,State> const& Get(Fsm_impl<Idxs, Sts...> const&) noexcept;
+    // template<size_type Idx, typename Idxs, typename... Sts>
+    // friend inline constexpr FsmState_t<Idx,State>&& Get(Fsm_impl<Idxs, Sts...>&&) noexcept;
 private:
     size_type state_{};
 };
@@ -141,40 +141,40 @@ private:
 
 /* Get */
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-template<size_type I, typename U>
-inline constexpr FsmState_t<I,U>& Get_impl(FsmState<I,U>& st) noexcept
-{
-    return st.Get();
-}
-template<size_type I, typename U>
-inline constexpr FsmState_t<I,U> const& Get_impl(FsmState<I,U> const& st) noexcept
-{
-    return st.Get();
-}
-template<size_type I, typename U>
-inline constexpr FsmState_t<I,U>&& Get_impl(FsmState<I,U>&& st) noexcept
-{
-    return st.Get();
-}
+// template<size_type I, typename U>
+// inline constexpr FsmState_t<I,U>& Get_impl(FsmState<I,U>& st) noexcept
+// {
+//     return st.Get();
+// }
+// template<size_type I, typename U>
+// inline constexpr FsmState_t<I,U> const& Get_impl(FsmState<I,U> const& st) noexcept
+// {
+//     return st.Get();
+// }
+// template<size_type I, typename U>
+// inline constexpr FsmState_t<I,U>&& Get_impl(FsmState<I,U>&& st) noexcept
+// {
+//     return st.Get();
+// }
 
-template<size_type I, typename Indices, typename... St>
-inline constexpr decltype(auto) Get(Fsm_impl<Indices, St...>& fsm) noexcept
-{
-    return Get_impl<I>(fsm);
-}
-template<size_type I, typename Indices, typename... St>
-inline constexpr decltype(auto) Get(Fsm_impl<Indices, St...> const& fsm) noexcept
-{
-    return Get_impl<I>(fsm);
-}
-template<size_type I, typename Indices, typename... St>
-inline constexpr decltype(auto) Get(Fsm_impl<Indices, St...>&& fsm) noexcept
-{
-    return Get_impl<I>(fsm);
-}
+// template<size_type I, typename Indices, typename... St>
+// inline constexpr decltype(auto) Get(Fsm_impl<Indices, St...>& fsm) noexcept
+// {
+//     return Get_impl<I>(fsm);
+// }
+// template<size_type I, typename Indices, typename... St>
+// inline constexpr decltype(auto) Get(Fsm_impl<Indices, St...> const& fsm) noexcept
+// {
+//     return Get_impl<I>(fsm);
+// }
+// template<size_type I, typename Indices, typename... St>
+// inline constexpr decltype(auto) Get(Fsm_impl<Indices, St...>&& fsm) noexcept
+// {
+//     return Get_impl<I>(fsm);
+// }
 
 template<size_type Idx, typename FsmT>
-using state_at = decltype( Get<Idx>(std::declval<FsmT>()) );
+using state_at = decltype( Get_impl<Idx>(std::declval<FsmT>()) );
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 /* dispatch */
@@ -197,88 +197,90 @@ struct fsm_action<TTraits, true> {
 template<typename TTraits, typename FsmT,
     bool = has_exit_v<TTraits, decltype(std::declval<FsmT>().derived())>>
 struct fsm_exit {
-    template<typename FsmT_, typename State>
-    constexpr inline void operator()(FsmT_&&, State&&) const noexcept {/* nop */}
+    template<typename FsmT_>
+    constexpr inline void operator()(FsmT_&&) const noexcept {/* nop */}
 };
 
-template<typename TTraits, typename FsmT>
-struct fsm_exit<TTraits, FsmT, true> {
-    template<typename FsmT_, typename State>
-    constexpr inline void operator()(FsmT_&& fsm, State&& state) const noexcept
+template<template<class,class>class TTraits, typename State, typename Event, typename FsmT>
+struct fsm_exit<TTraits<State,Event>, FsmT, true> {
+    template<typename FsmT_>
+    constexpr inline void operator()(FsmT_&& fsm) const noexcept
     {
-        std::forward<State>(state).exit(std::forward<FsmT_>(fsm).derived());
+        State::exit(std::forward<FsmT_>(fsm).derived());
     }
 };
 
 template<typename TTraits, typename FsmT,
     bool = has_entry_v<TTraits, decltype(std::declval<FsmT>().derived())>>
 struct fsm_entry {
-    template<typename FsmT_, typename State>
-    constexpr inline void operator()(FsmT_&&, State&&) const noexcept {/* nop */}
+    template<typename FsmT_>
+    constexpr inline void operator()(FsmT_&&) const noexcept {/* nop */}
 };
 
-template<typename TTraits, typename FsmT>
-struct fsm_entry<TTraits, FsmT, true> {
-    template<typename FsmT_, typename State>
-    constexpr inline void operator()(FsmT_&& fsm, State&& state) const noexcept
+template<template<class,class>class TTraits, typename FsmT, typename State, typename Event>
+struct fsm_entry<TTraits<State,Event>, FsmT, true> {
+    template<typename FsmT_>
+    constexpr inline void operator()(FsmT_&& fsm) const noexcept
     {
-        std::forward<State>(state).entry(std::forward<FsmT_>(fsm).derived());
+        State::entry(std::forward<FsmT_>(fsm).derived());
     }
 };
 
 template<typename TTraits, bool = has_guard_v<TTraits>, bool = has_next_state_v<TTraits>>
 struct transition {
-    template<typename FsmT, typename State>
-    constexpr inline void operator()(FsmT&& fsm, State&&) const noexcept {
+    template<typename FsmT>
+    constexpr inline void operator()(FsmT&& fsm) const noexcept {
         // std::cerr << "-Guard, -NextState\n";
         fsm_action<TTraits>{}(fsm);
     }
 };
 
 // +Guard, -NextState
-template<typename TTraits>
-struct transition<TTraits, true, false> {
-    template<typename FsmT, typename State>
-    constexpr inline void operator()(FsmT&& fsm, State&&) const noexcept {
+template<template<class,class>class TTraits, typename State, typename Event>
+struct transition<TTraits<State,Event>, true, false> {
+    using traits_t = TTraits<State,Event>;
+    template<typename FsmT>
+    constexpr inline void operator()(FsmT&& fsm) const noexcept {
         // std::cerr << "+Guard, -NextState\n";
-        static_assert(is_valid_guard_v<decltype(TTraits::guard),
-                      decltype(std::declval<FsmT>().derived())>);
-        if (TTraits::guard(fsm.derived())) {
-            fsm_action<TTraits>{}(fsm);
+        static_assert(is_valid_guard_v<decltype(traits_t::guard),
+            decltype(fsm.derived())>);
+        if (traits_t::guard(fsm.derived())) {
+            fsm_action<traits_t>{}(fsm);
         }
     }
 };
 
 // -Guard, +NextState
-template<typename TTraits>
-struct transition<TTraits, false, true> {
-    template<typename FsmT, typename State>
-    constexpr inline void operator()(FsmT&& fsm, State&& state) const noexcept {
+template<template<class,class>class TTraits, typename State, typename Event>
+struct transition<TTraits<State,Event>, false, true> {
+    using traits_t = TTraits<State,Event>;
+    template<typename FsmT>
+    constexpr inline void operator()(FsmT&& fsm) const noexcept {
         // std::cerr << "-Guard, +NextState\n";
-        fsm_exit<TTraits, FsmT>{}(fsm, state);
+        fsm_exit<traits_t, FsmT>{}(fsm);
         using fsm_statelist = get_state_list_t<std::decay_t<FsmT>>;
-        fsm_action<TTraits>{}(fsm);
-        constexpr auto next_state_idx = state_index_v<fsm_statelist, Next_state<TTraits>>;
+        fsm_action<traits_t>{}(fsm);
+        constexpr auto next_state_idx = state_index_v<fsm_statelist, Next_state<traits_t>>;
         fsm.state_ = next_state_idx;
-        fsm_entry<TTraits, FsmT>{}(fsm, Get<next_state_idx>(fsm));
+        fsm_entry<TTraits<Next_state<traits_t>,Event>, FsmT>{}(fsm);
     }
 };
 
 // +Guard, +NextState
-template<typename TTraits>
-struct transition<TTraits, true, true> {
-    template<typename FsmT, typename State>
-    constexpr inline void operator()(FsmT&& fsm, State&& state) const noexcept {
+template<template<class,class>class TTraits, typename State, typename Event>
+struct transition<TTraits<State,Event>, true, true> {
+    using traits_t = TTraits<State,Event>;
+    template<typename FsmT>
+    constexpr inline void operator()(FsmT&& fsm) const noexcept {
         // std::cerr << "+Guard, +NextState\n";
-        static_assert(is_valid_guard_v<decltype(TTraits::guard),
-                      decltype(std::declval<FsmT>().derived())>);
+        static_assert(is_valid_guard_v<decltype(traits_t::guard), decltype(fsm.derived())>);
         using fsm_statelist = get_state_list_t<std::decay_t<FsmT>>;
-        if (TTraits::guard(fsm.derived())) {
-            fsm_exit<TTraits, FsmT>{}(fsm, state);
-            fsm_action<TTraits>{}(fsm);
-            constexpr auto next_state_idx = state_index_v<fsm_statelist, Next_state<TTraits>>;
+        if (traits_t::guard(fsm.derived())) {
+            fsm_exit<traits_t, FsmT>{}(fsm);
+            fsm_action<traits_t>{}(fsm);
+            constexpr auto next_state_idx = state_index_v<fsm_statelist, Next_state<traits_t>>;
             fsm.state_ = next_state_idx;
-            fsm_entry<TTraits, FsmT>{}(fsm, Get<next_state_idx>(fsm));
+            fsm_entry<TTraits<Next_state<traits_t>,Event>, FsmT>{}(fsm);
         }
     }
 };
@@ -298,13 +300,12 @@ dispatch_event(FsmT&& fsm, Event&& event, Index_sequence<Idx,Idxs...>) noexcept
         using event_t = std::decay_t<Event>;
         using transition_traits = transition_table<state_t, event_t>;
         // std::cerr << "state index = " << Idx << "\n";
-        auto&& state = Get<Idx>(std::forward<FsmT>(fsm));
+        // auto&& state = Get<Idx>(std::forward<FsmT>(fsm));
         if constexpr (has_handle_event_v<state_t, decltype(fsm.derived()), Event>) {
-            // std::cerr << "has_handle_event == true\n";
-            state.handle_event(fsm.derived(), std::forward<Event>(event));
+            // state.handle_event(fsm.derived(), std::forward<Event>(event));
+            state_t::handle_event(fsm.derived(), std::forward<Event>(event));
         }
-        transition<transition_traits>{}(
-            std::forward<FsmT>(fsm),std::forward<decltype(state)>(state));
+        transition<transition_traits>{}(std::forward<FsmT>(fsm));
     }
     else if constexpr (sizeof...(Idxs) != 0) {
         dispatch_event(
