@@ -6,7 +6,7 @@
 
 /* typelist */
 /* --------------------------------------------------------------------------------------------- */
-using size_type = std::size_t;
+using size_type = int;
 
 template<size_type Idx>
 using Index_constant = std::integral_constant<size_type, Idx>;
@@ -135,6 +135,7 @@ constexpr inline auto has_logger_v{has_logger<T>::value};
 template<typename FsmT, typename State, typename Event,
          typename = void_t<>>
 struct has_log_event : std::false_type { };
+#if defined(FSM_DEBUG_LOG)
 template<typename FsmT, typename State, typename Event>
 struct has_log_event<FsmT, State, Event,
     void_t<decltype(FsmT::logger().log_event(
@@ -142,42 +143,48 @@ struct has_log_event<FsmT, State, Event,
     : std::true_type
 {
 };
+#endif
 template<typename FsmT, typename State, typename Event>
 constexpr inline auto has_log_event_v{has_log_event<FsmT, State, Event>::value};
 
 // log guard - FsmT::logger().log_guard(fsm, guard, event, guard_result);
-template<typename FsmT, typename Guard, typename Event,
+template<typename FsmT, typename Guard, /* typename Event, */
          typename = void_t<>>
 struct has_log_guard : std::false_type { };
-template<typename FsmT, typename Guard, typename Event>
-struct has_log_guard<FsmT, Guard, Event,
+#if defined(FSM_DEBUG_LOG)
+template<typename FsmT, typename Guard/* , typename Event */>
+struct has_log_guard<FsmT, Guard, /* Event, */
     void_t<decltype(FsmT::logger().log_guard(
         std::declval<FsmT const&>(), std::declval<Guard const&>(),
-        std::declval<Event const&>(), false))>>
+        /* std::declval<Event const&>(), */ false))>>
     : std::true_type
 {
 };
-template<typename FsmT, typename Guard, typename Event>
-constexpr inline auto has_log_guard_v{has_log_guard<FsmT, Guard, Event>::value};
+#endif
+template<typename FsmT, typename Guard/* , typename Event */>
+constexpr inline auto has_log_guard_v{has_log_guard<FsmT, Guard/* , Event */>::value};
 
 // log action
-template<typename FsmT, typename Action, typename Event,
+template<typename FsmT, typename Action, /* typename Event, */
          typename = void_t<>>
 struct has_log_action : std::false_type { };
-template<typename FsmT, typename Action, typename Event>
-struct has_log_action<FsmT, Action, Event,
+#if defined(FSM_DEBUG_LOG)
+template<typename FsmT, typename Action/* , typename Event */>
+struct has_log_action<FsmT, Action, /* Event, */
     void_t<decltype(FsmT::logger().log_action(
-        std::declval<FsmT const&>(), std::declval<Action const&>(), std::declval<Event const&>()))>>
+        std::declval<FsmT const&>(), std::declval<Action const&>()/* , std::declval<Event const&>() */))>>
     : std::true_type
 {
 };
-template<typename FsmT, typename Action, typename Event>
-constexpr inline auto has_log_action_v{has_log_action<FsmT, Action, Event>::value};
+#endif
+template<typename FsmT, typename Action/* , typename Event */>
+constexpr inline auto has_log_action_v{has_log_action<FsmT, Action/* , Event */>::value};
 
 // log state change
 template<typename FsmT, typename SrcState, typename DstState,
          typename = void_t<>>
 struct has_log_state_change : std::false_type { };
+#if defined(FSM_DEBUG_LOG)
 template<typename FsmT, typename SrcState, typename DstState>
 struct has_log_state_change<FsmT, SrcState, DstState,
     void_t<decltype(FsmT::logger().log_state_change(
@@ -186,8 +193,37 @@ struct has_log_state_change<FsmT, SrcState, DstState,
     : std::true_type
 {
 };
+#endif
 template<typename FsmT, typename SrcState, typename DstState>
 constexpr inline auto has_log_state_change_v{has_log_state_change<FsmT, SrcState, DstState>::value};
+
+template<typename FsmT, typename State, typename = void_t<>>
+struct has_log_exit : std::false_type { };
+#if defined(FSM_DEBUG_LOG)
+template<typename FsmT, typename State>
+struct has_log_exit<FsmT, State,
+    void_t<decltype(FsmT::logger().log_exit(
+        std::declval<FsmT const&>(),std::declval<State const&>()))>>
+    : std::true_type
+{
+};
+#endif
+template<typename FsmT, typename State>
+constexpr inline auto has_log_exit_v{has_log_exit<FsmT,State>::value};
+
+template<typename FsmT, typename State, typename = void_t<>>
+struct has_log_entry : std::false_type { };
+#if defined(FSM_DEBUG_LOG)
+template<typename FsmT, typename State>
+struct has_log_entry<FsmT, State,
+    void_t<decltype(FsmT::logger().log_entry(
+        std::declval<FsmT const&>(),std::declval<State const&>()))>>
+    : std::true_type
+{
+};
+#endif
+template<typename FsmT, typename State>
+constexpr inline auto has_log_entry_v{has_log_entry<FsmT,State>::value};
 /* --------------------------------------------------------------------------------------------- */
 
 

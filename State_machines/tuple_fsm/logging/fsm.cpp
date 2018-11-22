@@ -43,6 +43,38 @@ struct animation_logger {
             << "]: in state [" << logging::get_type_name<State>()
             << "], got event [" << logging::get_type_name<Event>() << "]\n";
     }
+    template<typename Guard>
+    void log_guard(Animation const&, Guard const&, bool result) const noexcept
+    {
+        std::cerr << "[" << logging::get_type_name<Animation>()
+            << "]: guard [" << logging::get_type_name<Guard>() << "]"
+            << (result ? " [OK]" : " [Reject]") << "\n";
+    }
+    template<typename Action>
+    void log_action(Animation const&, Action const&) const noexcept
+    {
+        std::cerr << "[" << logging::get_type_name<Animation>()
+            << "]: action [" << logging::get_type_name<Action>() << "]\n";
+    }
+    template<typename State>
+    void log_exit(Animation const&, State const&) const noexcept
+    {
+        std::cerr << "[" << logging::get_type_name<Animation>()
+            << "]: state exit [" << logging::get_type_name<State>() << "]\n";
+    }
+    template<typename State>
+    void log_entry(Animation const&, State const&) const noexcept
+    {
+        std::cerr << "[" << logging::get_type_name<Animation>()
+            << "]: state entry [" << logging::get_type_name<State>() << "]\n";
+    }
+    template<typename SrcState, typename DstState>
+    void log_state_change(Animation const&, SrcState const&, DstState const&) const noexcept
+    {
+        std::cerr << "[" << logging::get_type_name<Animation>()
+            << "]: state change [" << logging::get_type_name<SrcState>() << "] -> ["
+            << logging::get_type_name<DstState>() << "]\n";
+    }
 };
 
 class Animation : public Fsm<Animation, sAnimating, sPaused, sIdle>
@@ -164,17 +196,17 @@ int main()
     // std::cerr << "has_guard = " << has_guard_v<transition_table<sAnimating,eUpdate>> << "\n";
     auto animation = Animation{};
     animation.set_initial_state(initial_state_v<sIdle>);    // or explicitly later
-    // constexpr auto num_laps = 1'000'000u;
-    // auto sw = Stopwatch{"Animation"};
-    // for (auto i=0u; i<num_laps; ++i) {
-    //     run_animation(animation);
-    // }
-    // sw.stop();
-    // const auto total = sw.lap_get();
-    // std::cout << "Animation benchmark over " << num_laps << " iterations:\n"
-    //     << "-   total = " << total << " ms\n"
-    //     << "-   average per 10 transitions = " << static_cast<double>(total) / num_laps << " ms\n"
-    //     << "-   average per transition = " << static_cast<double>(total) / num_laps /10 << " ms\n";
+    constexpr auto num_laps = 1'000'000u;
+    auto sw = Stopwatch{"Animation"};
+    for (auto i=0u; i<num_laps; ++i) {
+        run_animation(animation);
+    }
+    sw.stop();
+    const auto total = sw.lap_get();
+    std::cout << "Animation benchmark over " << num_laps << " iterations:\n"
+        << "-   total = " << total << " ms\n"
+        << "-   average per 10 transitions = " << static_cast<double>(total) / num_laps << " ms\n"
+        << "-   average per transition = " << static_cast<double>(total) / num_laps /10 << " ms\n";
 
-    run_animation(animation);
+    // run_animation(animation);
 }

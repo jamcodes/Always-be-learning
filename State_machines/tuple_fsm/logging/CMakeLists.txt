@@ -197,6 +197,9 @@ foreach( target ${Sources} )
   #   -fconcepts
   #   -lstdc++fs
   # )
+  target_compile_definitions( ${fname} PRIVATE
+    # $<$<CONFIG:Debug>:FSM_DEBUG_LOG>
+    )
   target_link_libraries( ${fname}
     Project_config
     # ${Boost_LIBRARIES}
