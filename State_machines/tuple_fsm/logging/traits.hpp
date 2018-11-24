@@ -231,7 +231,7 @@ constexpr inline auto has_log_entry_v{has_log_entry<FsmT,State>::value};
 namespace logging {
 namespace detail {
 template <class, int N, size_type... Ns>
-auto get_type_name(const char *ptr, Index_sequence<Ns...>) {
+auto get_type_name(const char *ptr, Index_sequence<Ns...>) noexcept {
   static const char str[] = {ptr[N + Ns]..., 0};
   return str;
 }

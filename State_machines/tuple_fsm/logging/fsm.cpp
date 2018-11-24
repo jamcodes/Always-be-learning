@@ -196,6 +196,7 @@ int main()
     // std::cerr << "has_guard = " << has_guard_v<transition_table<sAnimating,eUpdate>> << "\n";
     auto animation = Animation{};
     animation.set_initial_state(initial_state_v<sIdle>);    // or explicitly later
+#if !defined(FSM_DEBUG_LOG)
     constexpr auto num_laps = 1'000'000u;
     auto sw = Stopwatch{"Animation"};
     for (auto i=0u; i<num_laps; ++i) {
@@ -207,6 +208,7 @@ int main()
         << "-   total = " << total << " ms\n"
         << "-   average per 10 transitions = " << static_cast<double>(total) / num_laps << " ms\n"
         << "-   average per transition = " << static_cast<double>(total) / num_laps /10 << " ms\n";
-
-    // run_animation(animation);
+#else
+    run_animation(animation);
+#endif
 }
