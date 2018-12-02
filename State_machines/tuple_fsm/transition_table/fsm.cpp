@@ -35,14 +35,15 @@ struct sIdle {
     inline void entry(Animation& fsm) noexcept;
 };
 
+struct animation_logger;
 struct animation_logger {
     template<typename State, typename Event>
-    void log_event(Animation const&, State const&, Event const&) const noexcept
-    {
-        std::cerr << '[' << logging::get_type_name<Animation>()
-            << "]: in state [" << logging::get_type_name<State>()
-            << "], got event [" << logging::get_type_name<Event>() << "]\n";
-    }
+    void log_event(Animation const& fsm, State const&, Event const&) const noexcept;
+    // {
+    //     std::cerr << '[' << logging::get_type_name<Animation>()
+    //         << "]: count = " << fsm.counter " in state [" << logging::get_type_name<State>()
+    //         << "], got event [" << logging::get_type_name<Event>() << "]\n";
+    // }
     template<typename Guard>
     void log_guard(Animation const&, Guard const&, bool result) const noexcept
     {
@@ -109,25 +110,38 @@ public:
             return fsm.counter >= fsm.counter_limit;
         }
     };
-    static inline constexpr TransitionTraits<
-        TransitionEntry<sIdle,ePlay,sAnimating,guard1,action1>,
-        TransitionEntry<sAnimating,eUpdate,sIdle,guard2,void>,
-        TransitionEntry<sAnimating,ePause,sPaused,void,void>,
-        TransitionEntry<sAnimating,eStop,sIdle,void,void>,
-        TransitionEntry<sPaused,ePlay,sAnimating,void,void>,
-        TransitionEntry<sPaused,eStop,sIdle,void,void>
-    > transition_table{};
+    // static inline constexpr TransitionTraits<
+    //     TransitionEntry<sIdle,ePlay,sAnimating,guard1,action1>,
+    //     TransitionEntry<sAnimating,eUpdate,sIdle,guard2,void>,
+    //     TransitionEntry<sAnimating,ePause,sPaused,void,void>,
+    //     TransitionEntry<sAnimating,eStop,sIdle,void,void>,
+    //     TransitionEntry<sPaused,ePlay,sAnimating,void,void>,
+    //     TransitionEntry<sPaused,eStop,sIdle,void,void>
+    // > transition_table{};
 
-    // static inline constexpr decltype(auto) transition_table() noexcept
-    // {
-    //     return make_transition_table(
-    //         transition_entry(state<sIdle>, event<ePlay>, next_state<sAnimating>, guard<guard1>, action<action1>),
-
-    //     );
-    // }
+    /* static */ constexpr inline auto transition_table() noexcept
+    {
+        return make_transition_table(
+            make_entry(wrap<sIdle>, wrap<ePlay>, wrap<sAnimating>, guard1{}, action1{}),
+            make_entry(wrap<sAnimating>, wrap<eUpdate>, wrap<sIdle>)
+                .add_guard([ctr=counter](Animation const&)noexcept{return false;}),
+            make_entry(wrap<sAnimating>,wrap<ePause>,wrap<sPaused>),
+            make_entry(wrap<sAnimating>,wrap<eStop>,wrap<sIdle>),
+            make_entry(wrap<sPaused>,wrap<ePlay>,wrap<sAnimating>),
+            make_entry(wrap<sPaused>,wrap<eStop>,wrap<sIdle>)
+        );
+    }
 private:
     static inline animation_logger logger_{};
 };
+
+template<typename State, typename Event>
+void animation_logger::log_event(Animation const& fsm, State const&, Event const&) const noexcept
+{
+    std::cerr << '[' << logging::get_type_name<Animation>()
+        << "]: count = " << fsm.counter << " in state [" << logging::get_type_name<State>()
+        << "], got event [" << logging::get_type_name<Event>() << "]\n";
+}
 
 inline void sAnimating::handle_event(Animation& fsm, eUpdate) const noexcept
 {

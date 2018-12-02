@@ -178,8 +178,8 @@ public:
         ::dispatch_event(*this, std::forward<Event>(event), Indices{});
     }
 
-    constexpr decltype(auto) transition_table() const noexcept { return derived().transition_table; }
-    constexpr decltype(auto) transition_table() noexcept { return derived().transition_table; }
+    constexpr decltype(auto) transition_table() const noexcept { return derived().transition_table(); }
+    constexpr decltype(auto) transition_table() noexcept { return derived().transition_table(); }
     constexpr decltype(auto) self() & noexcept { return derived(); }
     constexpr decltype(auto) self() const& noexcept { return derived(); }
     constexpr decltype(auto) self() && noexcept { return derived(); }
