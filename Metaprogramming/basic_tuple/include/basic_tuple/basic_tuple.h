@@ -108,7 +108,7 @@ inline constexpr TupleElement_t<I,U>const& Get_impl(TupleElement<I, U> const& te
 template<std::size_t I, typename U>
 inline constexpr TupleElement_t<I,U>&& Get_impl(TupleElement<I, U>&& te) noexcept
 {
-        return te.Get();
+        return std::move(te).Get();
 }
 
 template<std::size_t I, typename T, typename... Types>
@@ -124,7 +124,7 @@ inline constexpr decltype(auto) Get(Tuple_impl<T, Types...> const& t) noexcept
 template<std::size_t I, typename T, typename... Types>
 inline constexpr decltype(auto) Get(Tuple_impl<T, Types...>&& t) noexcept
 {
-    return Get_impl<I>(t);
+    return Get_impl<I>(std::move(t));
 }
 
 
