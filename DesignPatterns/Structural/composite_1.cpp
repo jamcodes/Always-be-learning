@@ -3,6 +3,12 @@
 #include <algorithm>
 #include <vector>
 
+/**
+ * The Composite design pattern composes objects into tree-like structures.
+ * Classes which aggregate multiple instances of other, possibly also composite,
+ * classes implement the same interface, which makes it possible to treat
+ * individual objects and compositions of objects uniformly.
+ */
 
 class Graphic {
 public:

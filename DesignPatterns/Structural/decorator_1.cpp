@@ -7,6 +7,7 @@
  * Decorator pattern is used to add reponsibilities (modify behavior) at runtime. It implements
  * the same interface as decorated class, but adds to it - more functionality is executed before
  * and/or after the decorated code is executed.
+ * The core object can be wrapped recursively, thus adding multiple desired functionalities.
  */
 
 

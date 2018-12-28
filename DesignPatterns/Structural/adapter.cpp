@@ -3,6 +3,15 @@
 #include <utility>
 
 
+/**
+ * The Adapter design pattern converts the interface of a class into another interface that client
+ * code expects. It wraps an existing class in a class with the desired interface.
+ * Can be done via inheritance by inheriting publicly from the desired interface class and privately
+ * from the wrapped class. The calls to the new interface member functions are then delegated to
+ * the wrapped class.
+ * It provides a different interface to its subject.
+ */
+
 // Desired interface (Target)
 class Rectangle {
 public:

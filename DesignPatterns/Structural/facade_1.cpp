@@ -3,6 +3,12 @@
 #include <memory>
 #include <utility>
 
+/**
+ * The Facade design pattern provides a unified interface to a set of interfaces in a subsystem.
+ * It defines a simpler, higher-level interface that manages multiple subsystems and makes them
+ * easier to use.
+ * It wraps a complicated class or class hierarchy in a class with a simpler interface.
+ */
 
 class SubSystemOne {
 public:

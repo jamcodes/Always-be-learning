@@ -8,6 +8,8 @@
 /**
  * The bridge pattern is used to decouple an abstraction from its implementation
  * so that the two can vary independently.
+ * The interface is managed by one interface hierarchy and the implementation is
+ * managed by a separate inheritance hierarchy.
  */
 
 // Implementor

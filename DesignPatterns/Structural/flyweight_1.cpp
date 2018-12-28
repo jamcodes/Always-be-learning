@@ -7,6 +7,11 @@
 #include <utility>
 
 
+/**
+ * The Flyweight design pattern utilizes sharing to support large numbers of fine-grained
+ * objects efficiently. The instances are shared and/or reused after construction.
+ */
+
 class FormattedText {
 public:
     explicit FormattedText(std::string const& plain_text)

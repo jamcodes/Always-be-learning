@@ -3,6 +3,12 @@
 #include <utility>
 #include <mutex>
 
+/**
+ * The Proxy design pattern provides an extra level of indirection to an instance of a class
+ * it manages. It implements the same interface as its subject and delegates calls to the managed
+ * object but controlls access to it. This is done for vairous reasons - e.g. to manage expensive
+ * instantiation, restrict or controll access etc.
+ */
 
 class Subject {
 public:
