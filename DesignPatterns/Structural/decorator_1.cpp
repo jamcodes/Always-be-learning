@@ -37,7 +37,7 @@ public:
     }
 
 protected:
-    std::unique_ptr<Window> decorated_window_;  // non-owning
+    std::unique_ptr<Window> decorated_window_;
 };
 
 class VerticalScrollBarDecorator : public WindowDecorator {
