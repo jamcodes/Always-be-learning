@@ -3,6 +3,15 @@
 #include <memory>
 #include <stdexcept>
 
+/**
+ * The Factory method / member function defines an inteface for creating objects, but lets
+ * subclasses decide which class to instantiate. It is also used to encapsulate virtual function
+ * calls at construction. A constructor can not safely perform dynamic dispatch, as the object
+ * is not yet fully constructed. To emulate dynamic dyspatch at construction an object is partially
+ * instantiated in the constructor and then dynamic dispatch is done post-construction. The whole
+ * operation is encapsulated in the factory member function - making it the only valid way to
+ * construct an object.
+ */
 
 class Button {
 public:

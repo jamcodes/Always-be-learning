@@ -3,6 +3,10 @@
 #include <string_view>
 #include <memory>
 
+/**
+ * The Prototype design pattern encapsulates construction of an object by utilizing a virtual
+ * `clone` member function that deeply copies common part of an object.
+ */
 
 class Address {
 public:

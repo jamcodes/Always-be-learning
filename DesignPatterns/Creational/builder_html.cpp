@@ -6,6 +6,11 @@
 #include <utility>
 #include <memory>
 
+/**
+ * The Builder design pattern handles construction of many possible representations
+ * based on given input. It constructs complex objects step by step.
+ * It often builds a Composite.
+ */
 
 class HtmlBuilder;
 
