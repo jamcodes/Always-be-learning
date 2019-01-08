@@ -2,6 +2,12 @@
 #include <string>
 #include <utility>
 
+/**
+ * The `Chain of responsibility` pattern decouples sender of a request from its receiver by having
+ * more than one potential handler of the request. The request can be passed down the chain based
+ * on various criteria - e.g. only if the current object can not handle the request, or in contrast,
+ * always - for further processing by the next handler.
+ */
 
 class Photo {
 public:

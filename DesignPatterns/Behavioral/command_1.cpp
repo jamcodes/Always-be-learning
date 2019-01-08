@@ -1,5 +1,10 @@
 #include <iostream>
 
+/**
+ * The `Command` design pattern decouples sender from the request receiver. It encapsulates a
+ * request as an object, allowing for client parameterization with different requests.
+ * It can be used to implement undoable operations.
+ */
 
 class Command {
 public:
