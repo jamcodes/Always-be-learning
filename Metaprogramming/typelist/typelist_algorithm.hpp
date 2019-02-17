@@ -1,0 +1,11 @@
+#pragma once
+#include "is_empty.hpp"
+#include "largest_type.hpp"
+#include "reverse.hpp"
+#include "accumulate.hpp"
+#include "nth_element.hpp"
+#include "pop_back.hpp"
+#include "transform.hpp"
+#include "insertion_sort.hpp"
+#include "ifthenelse.hpp"
+#include "identity.hpp"
