@@ -18,9 +18,9 @@ constexpr auto default_construct() noexcept(std::is_nothrow_default_constructibl
 }
 
 // utility to construct N instances of type T initialized with arguments Args...
-template<typename T, std::size_t = 0>
+template <typename T, std::size_t = 0>
 struct construct {
-    template<typename... Args>
+    template <typename... Args>
     auto operator()(Args&&... args) noexcept(std::is_nothrow_constructible_v<T, Args...>)
     {
         return T{std::forward<Args>(args)...};
@@ -43,7 +43,6 @@ auto even_start_impl(std::index_sequence<Is...>, Fs&&... fs)
     (..., std::get<Is>(ready_flags).get_future().wait());
     go.set_value();
     return futures;
-    ;
 }
 
 template <typename... Fs>
