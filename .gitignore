@@ -33,6 +33,8 @@
 
 # env stuff
 build/
+build2/
+build3/
 buildvc/
 .vscode/
 pacificplusplus_code/
