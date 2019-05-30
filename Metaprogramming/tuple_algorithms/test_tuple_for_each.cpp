@@ -2,7 +2,6 @@
 #include <string>
 #include "tuple_for_each.hpp"
 
-
 int main()
 {
     auto one{std::make_tuple(std::string{"Hello"})};
@@ -28,4 +27,18 @@ int main()
     alt2::tuple_for_each(two, func);
     std::cerr << "\n";
     alt2::tuple_for_each(ctup, func);
+
+    std::cerr << "\nalt3:\n";
+    alt3::tuple_for_each(one, func);
+    std::cerr << "\n";
+    alt3::tuple_for_each(two, func);
+    std::cerr << "\n";
+    alt3::tuple_for_each(ctup, func);
+
+    std::cerr << "\nalt4:\n";
+    alt4::tuple_for_each(one, func);
+    std::cerr << "\n";
+    alt4::tuple_for_each(two, func);
+    std::cerr << "\n";
+    alt4::tuple_for_each(ctup, func);
 }

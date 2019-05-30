@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <string_view>
+#include <cassert>
 #include "tuple_find_if.hpp"
 
 int main()
@@ -19,6 +20,8 @@ int main()
     };
 
     auto index = tuple_find_if(one, pred{});
+    auto index2 = alt::tuple_find_if(one, pred{});
+    assert(index == index2);
     if (index != std::tuple_size<decltype(one)>::value) {
         std::cerr << "Tuple 'one': Found a match at index = " << index << "\n";
     }
@@ -27,6 +30,8 @@ int main()
     }
 
     index = tuple_find_if(two, pred{});
+    index2 = alt::tuple_find_if(two, pred{});
+    assert(index == index2);
     if (index != std::tuple_size<decltype(two)>::value) {
         std::cerr << "Tuple 'two': Found a match at index = " << index << "\n";
     }
@@ -35,6 +40,8 @@ int main()
     }
 
     index = tuple_find_if(ctup, pred{});
+    index2 = alt::tuple_find_if(ctup, pred{});
+    assert(index == index2);
     if (index != std::tuple_size<decltype(ctup)>::value) {
         std::cerr << "Tuple 'ctup': Found a match at index = " << index << "\n";
     }
