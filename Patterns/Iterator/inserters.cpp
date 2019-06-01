@@ -7,14 +7,14 @@
 
 template<typename Derived>
     // std::iterator is deprecated in C++17
-struct InserterBase : public std::iterator<std::output_iterator_tag, void,void,void,void>
+struct InserterBase // : public std::iterator<std::output_iterator_tag, void,void,void,void>
 {
 public:
     using iterator_category = std::output_iterator_tag;
-    using value_type = void;
-    using reference = void;
-    using pointer = void;
-    using distance_type = std::ptrdiff_t;   // deprecated in C++17
+    using value_type        = void;
+    using reference         = void;
+    using pointer           = void;
+    using difference_type   = std::ptrdiff_t;   // deprecated in C++17
 
     decltype(auto) operator*() noexcept { return derived(); }
     decltype(auto) operator*() const noexcept { return derived(); }

@@ -1,8 +1,8 @@
 #include <iostream>
 #include <string>
-#include "tuple_for_each.hpp"
-#include "tuple_find_if.hpp"
 #include "tuple_apply_at.hpp"
+#include "tuple_find_if.hpp"
+#include "tuple_for_each.hpp"
 
 int main()
 {
@@ -28,11 +28,22 @@ int main()
         std::cerr << "Tuple 'one': did not find a match\n";
     }
 
-    auto const twice = [](double& val) noexcept { val *= 2; };
+    auto const twice = [](int& val) noexcept { val *= 2; };
     tuple_apply_at(tup, twice, index);
-        std::cerr << "after applying `twice` at index = " << index << ", tup = ";
+    std::cerr << "after applying `twice` at index = " << index << ", tup = ";
     tuple_for_each(tup, print);
     alt::tuple_apply_at(tup, twice, index);
-        std::cerr << "after applying `twice` again at index = " << index << ", tup = ";
+    std::cerr << "after applying `twice` again at index = " << index << ", tup = ";
     tuple_for_each(tup, print);
+
+    std::cerr << "\n\ncref tuple:\n";
+    auto const ctup{tup};
+    auto const print_twice = [](int val) noexcept { std::cerr << val << ", " << val; };
+    tuple_apply_at(ctup, print_twice, index);
+
+    std::string dst;
+    auto const get_by_move = [&dst=dst](std::string&& val) noexcept { dst = std::move(val); };
+    std::cerr << "\n\nrvalue tuple:\n";
+    tuple_apply_at(std::make_tuple(42, std::string{"Hello tuples"}), get_by_move, index);
+    std::cerr << "dst = " << dst << "\n";
 }
