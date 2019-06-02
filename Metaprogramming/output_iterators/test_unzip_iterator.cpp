@@ -28,11 +28,27 @@ int main()
     std::copy(
         coll.cbegin(), coll.cend(),
         unzip(std::back_inserter(ints), std::back_inserter(chars), std::back_inserter(strings)));
-    std::cerr << "\nresults:";
+    std::cerr << "\nresults:\n";
     std::cerr << "ints: ";
     for (auto i : ints) { std::cerr << i << ", "; }
     std::cerr << "\nchars: ";
     for (auto c : chars) { std::cerr << c << ", "; }
     std::cerr << "\nstrings: ";
+    for (auto const& s : strings) { std::cerr << s << ", "; }
+
+    // using alternative implementation using multitransform
+    std::vector<int> ints2;
+    std::vector<char> chars2;
+    std::vector<std::string> strings2;
+    std::copy(
+        coll.crbegin(), coll.crend(),
+        alt::unzip(std::back_inserter(ints2), std::back_inserter(chars2), std::back_inserter(strings2))
+    );
+    std::cerr << "\n\nresults using alt::unzip:\n";
+    std::cerr << "ints2: ";
+    for (auto i : ints) { std::cerr << i << ", "; }
+    std::cerr << "\nchars2: ";
+    for (auto c : chars) { std::cerr << c << ", "; }
+    std::cerr << "\nstrings2: ";
     for (auto const& s : strings) { std::cerr << s << ", "; }
 }

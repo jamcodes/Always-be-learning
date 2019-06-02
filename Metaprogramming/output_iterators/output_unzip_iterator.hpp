@@ -73,4 +73,21 @@ constexpr auto unzip(Iterators... iterators) noexcept
     return output_unzip_iterator<Iterators...>(std::move(iterators)...);
 }
 
+namespace alt {
+#include "output_multitransform_iterator.hpp"
+// alternative implementation using multitransform output iterator
+template <std::size_t... Is>
+constexpr auto unzip_impl(std::index_sequence<Is...>) noexcept
+{
+    return make_multitransform([](auto&& tuple) noexcept {
+        return std::get<Is>(std::forward<decltype(tuple)>(tuple));
+    }...);
+}
+template <typename... Iterators>
+constexpr auto unzip(Iterators... iterators) noexcept
+{
+    return unzip_impl(std::index_sequence_for<Iterators...>{})(std::move(iterators)...);
+}
+}  // namespace alt
+
 #endif  // UNZIP_ITERATOR_HEADER_GUARD_HPP_

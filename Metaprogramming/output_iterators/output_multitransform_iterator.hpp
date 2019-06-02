@@ -74,6 +74,7 @@ public:
                     std::forward<decltype(function)>(function)(std::forward<T>(value));
             },
             iterators_, functions_);
+        return *this;
     }
 
 private:
@@ -93,29 +94,27 @@ public:
     constexpr auto operator()(Iterators... iterators) const& noexcept
     {
         return output_multitransform_iterator<std::tuple<Iterators...>, std::tuple<Functions...>>{
-            functions_, std::move(iterators)...)};
+            functions_, std::move(iterators)...};
     }
 
     template <typename... Iterators>
     constexpr auto operator()(Iterators... iterators) && noexcept
     {
         return output_multitransform_iterator<std::tuple<Iterators...>, std::tuple<Functions...>>{
-            std::move(functions_), std::move(iterators)...)
-        };
+            std::move(functions_), std::move(iterators)...};
     }
 
 private:
     std::tuple<Functions...> functions_;
 };
 
-template<typename... Functions>
-multitransform(Functions...) -> multitransform<Functions...>;
+template <typename... Functions>
+multitransform(Functions...)->multitransform<Functions...>;
 
-template<typename... Functions>
+template <typename... Functions>
 constexpr auto make_multitransform(Functions&&... functions) noexcept
 {
     return multitransform<std::decay_t<Functions>...>(std::forward<Functions>(functions)...);
 }
-
 
 #endif  // OUTPUT_MULTITRANSFORM_ITERATOR_HEADER_GUARD_HPP_

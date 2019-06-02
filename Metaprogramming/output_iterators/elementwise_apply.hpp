@@ -59,8 +59,8 @@ constexpr void elementwise_apply_impl(Function&& function, std::index_sequence<I
                                       Tuples&&... tuples) noexcept;
 
 template <typename Function, typename... Tuples>
-constexpr void elementwise_apply_impl(Function&& function, std::index_sequence<>,
-                                      Tuples&&... tuples) noexcept
+constexpr void elementwise_apply_impl(Function&&, std::index_sequence<>,
+                                      Tuples&&...) noexcept
 {
 }
 
