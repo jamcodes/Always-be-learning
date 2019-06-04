@@ -9,8 +9,9 @@
  * elementwise_apply invokes a given callable F with elements of the given Tuple pack passed as
  * arguments. The callable F is invoked N times where N is the number of elements in each tuple.
  * E.g for three Tuples of two elements:
- * Function(std::get<0>(tuple_1), std::get<0>(tuple_2), std::get<0>(tuple_3));
- * Function(std::get<1>(tuple_1), std::get<1>(tuple_2), std::get<1>(tuple_3));
+ * function(std::get<0>(tuple_1), std::get<0>(tuple_2), ..., std::get<0>(tuple_N));
+ * function(std::get<1>(tuple_1), std::get<1>(tuple_2), ..., std::get<1>(tuple_N));
+ * function(std::get<M>(tuple_1), std::get<M>(tuple_2), ..., std::get<M>(tuple_N));
  */
 
 template <typename...>

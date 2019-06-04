@@ -9,7 +9,8 @@
 // The helper is necessary to allow for `Action` callables that can be called only with the
 // element at the given index.
 template <typename Tuple, typename Action, std::size_t I,
-          bool = std::is_invocable_v<std::decay_t<Action>, decltype(std::get<I>(std::declval<Tuple&&>()))>>
+          bool = std::is_invocable_v<std::decay_t<Action>,
+                                     decltype(std::get<I>(std::declval<Tuple&&>()))>>
 struct tuple_apply_at_helper {
     constexpr void operator()(Tuple&&, Action&&) const noexcept
     {

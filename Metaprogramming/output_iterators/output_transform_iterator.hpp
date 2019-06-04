@@ -9,10 +9,10 @@ template <typename Iterator, typename Function>
 class output_transform_iterator {
 public:
     using iterator_category = std::output_iterator_tag;
-    using value_type        = typename std::iterator_traits<Iterator>::value_type;
-    using difference_type   = typename std::iterator_traits<Iterator>::difference_type;
-    using pointer           = typename std::iterator_traits<Iterator>::pointer;
-    using reference         = typename std::iterator_traits<Iterator>::reference;
+    using value_type = typename std::iterator_traits<Iterator>::value_type;
+    using difference_type = typename std::iterator_traits<Iterator>::difference_type;
+    using pointer = typename std::iterator_traits<Iterator>::pointer;
+    using reference = typename std::iterator_traits<Iterator>::reference;
 
     constexpr explicit output_transform_iterator(Iterator iterator, Function function) noexcept(
         std::is_nothrow_move_assignable_v<Iterator>&& std::is_nothrow_move_assignable_v<Function>)
@@ -26,8 +26,8 @@ public:
         return *this;
     }
 
-    constexpr output_transform_iterator operator++(int) noexcept(noexcept(std::declval<Iterator>()++) &&
-                                                       noexcept(++std::declval<Iterator>()))
+    constexpr output_transform_iterator operator++(int) noexcept(
+        noexcept(std::declval<Iterator>()++) && noexcept(++std::declval<Iterator>()))
     {
         // auto res{*this};     // necessary?
         // ++*this;             // necessary?

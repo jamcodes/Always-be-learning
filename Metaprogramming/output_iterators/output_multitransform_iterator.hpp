@@ -98,7 +98,7 @@ public:
     }
 
     template <typename... Iterators>
-    constexpr auto operator()(Iterators... iterators) && noexcept
+        constexpr auto operator()(Iterators... iterators) && noexcept
     {
         return output_multitransform_iterator<std::tuple<Iterators...>, std::tuple<Functions...>>{
             std::move(functions_), std::move(iterators)...};
