@@ -65,7 +65,7 @@ constexpr void tuple_apply_at(Tuple&& tuple, Action&& action, std::size_t index)
 // noexcept((... || std::is_nothrow_invocable_v<Action,
 //                                              decltype(std::get<Is>(std::declval<Tuple&&>()))>));
 // And probably could also be achieved pre-C++17 with a tone more code. However this seems like
-// wichfull thinking and is probably best avoided.
+// wishfull thinking and is probably best avoided.
 
 namespace alt {
 

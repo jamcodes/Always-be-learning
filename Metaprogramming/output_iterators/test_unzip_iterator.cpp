@@ -40,15 +40,33 @@ int main()
     std::vector<int> ints2;
     std::vector<char> chars2;
     std::vector<std::string> strings2;
-    std::copy(
-        coll.crbegin(), coll.crend(),
-        alt::unzip(std::back_inserter(ints2), std::back_inserter(chars2), std::back_inserter(strings2))
-    );
+    std::copy(coll.crbegin(), coll.crend(),
+              alt::unzip(std::back_inserter(ints2), std::back_inserter(chars2),
+                         std::back_inserter(strings2)));
     std::cerr << "\n\nresults using alt::unzip:\n";
     std::cerr << "ints2: ";
-    for (auto i : ints) { std::cerr << i << ", "; }
+    for (auto i : ints) {
+        std::cerr << i << ", ";
+    }
     std::cerr << "\nchars2: ";
-    for (auto c : chars) { std::cerr << c << ", "; }
+    for (auto c : chars) {
+        std::cerr << c << ", ";
+    }
     std::cerr << "\nstrings2: ";
-    for (auto const& s : strings) { std::cerr << s << ", "; }
+    for (auto const& s : strings) {
+        std::cerr << s << ", ";
+    }
+    // prints:
+    // coll:
+    // {1, a, first}, {2, b, second}, {3, c, third}, {4, d, fourth}, {5, e, fifth},
+    // results:
+    // ints: 1, 2, 3, 4, 5,
+    // chars: a, b, c, d, e,
+    // strings: first, second, third, fourth, fifth,
+
+    // results using alt::unzip:
+    // ints2: 1, 2, 3, 4, 5,
+    // chars2: a, b, c, d, e,
+    // strings2: first, second, third, fourth, fifth,
+
 }

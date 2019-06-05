@@ -21,4 +21,7 @@ int main()
     std::cerr << "results: ";
     for (auto const& s : results) { std::cerr << s << ", "; };
     std::cerr << "\n";
+    // prints:
+    // coll: one, two, three, four, five,
+    // results: oneone, twotwo, threethree, fourfour, fivefive,
 }
