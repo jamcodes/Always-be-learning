@@ -34,7 +34,7 @@ template <typename Tuple, typename Action, typename Predicate, std::size_t I>
 constexpr void tuple_apply_unique_impl(Tuple&& tuple, Action&& action, Predicate&& predicate,
                                        std::index_sequence<I>) noexcept
 {
-    auto&& value = std::get<I>(std::forward<Tuple>(tuple));
+    decltype(auto) value = std::get<I>(std::forward<Tuple>(tuple));
     if (std::forward<Predicate>(predicate)(value)) {
         tuple_apply_unique_maybe_invoke<Action, decltype(value)>{}(
             std::forward<Action>(action), std::forward<decltype(value)>(value));
@@ -45,7 +45,7 @@ template <typename Tuple, typename Action, typename Predicate, std::size_t I, st
 constexpr void tuple_apply_unique_impl(Tuple&& tuple, Action&& action, Predicate&& predicate,
                                        std::index_sequence<I, Is...>) noexcept
 {
-    auto&& value = std::get<I>(std::forward<Tuple>(tuple));
+    decltype(auto) value = std::get<I>(std::forward<Tuple>(tuple));
     // TODO: wrap the predicate to allow it to be "invoked" with an invalid type (one it can not be
     // invoked with) - return false if the types are not compatible. This would allow using
     // tuple_apply_unique with truly heterogenous tuples and incomplete predicates - ones that don't
@@ -64,7 +64,7 @@ constexpr void tuple_apply_unique(Tuple&& tuple, Action&& action, Predicate&& pr
 {
     using Indices = std::make_index_sequence<std::tuple_size_v<std::decay_t<Tuple>>>;
     tuple_apply_unique_impl(std::forward<Tuple>(tuple), std::forward<Action>(action),
-                       std::forward<Predicate>(predicate), Indices{});
+                            std::forward<Predicate>(predicate), Indices{});
 }
 
 namespace alt {
@@ -102,7 +102,7 @@ constexpr void tuple_apply_unique(Tuple&& tuple, Action&& action, Predicate&& pr
 {
     using Indices = std::make_index_sequence<std::tuple_size_v<std::decay_t<Tuple>>>;
     tuple_apply_unique_impl<Indices>{}(std::forward<Tuple>(tuple), std::forward<Action>(action),
-                                  std::forward<Predicate>(predicate));
+                                       std::forward<Predicate>(predicate));
 }
 
 }  // namespace alt
