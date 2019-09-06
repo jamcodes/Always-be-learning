@@ -10,28 +10,25 @@
 // are ready. Note that the threads will run truly concurrently only if the hardware allows
 // that many concurrent threads.
 
-// utility to easily fill a tuple with N default constructed instances of type T
-template <typename T, std::size_t = 0>
-constexpr auto default_construct() noexcept(std::is_nothrow_default_constructible_v<T>)
-{
-    return T{};
-}
 
 // utility to construct N instances of type T initialized with arguments Args...
 template <typename T, std::size_t = 0>
-struct construct {
+struct construct_impl {
     template <typename... Args>
-    auto operator()(Args&&... args) noexcept(std::is_nothrow_constructible_v<T, Args...>)
+    constexpr auto operator()(Args&&... args) const noexcept(std::is_nothrow_constructible_v<T, Args...>)
     {
         return T{std::forward<Args>(args)...};
     }
 };
 
+template<typename T, std::size_t Id = 0>
+constexpr inline auto construct{construct_impl<T, Id>{}};
+
 template <std::size_t... Is, typename... Fs>
 auto even_start_impl(std::index_sequence<Is...>, Fs&&... fs)
 {
     std::promise<void> go{};
-    auto ready_flags{std::make_tuple(default_construct<std::promise<void>, Is>()...)};
+    auto ready_flags{std::make_tuple(construct<std::promise<void>, Is>()...)};
     std::shared_future<void> go_future{go.get_future()};
     auto futures{std::make_tuple(std::async(
         std::launch::async,
