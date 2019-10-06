@@ -3,89 +3,90 @@
 #include <iostream>
 #include <type_traits>
 #include <utility>
-// #include <boost/type_index.hpp>
+#include <boost/type_index.hpp>
 
-// using boost::typeindex::type_id_with_cvr;
+using boost::typeindex::type_id_with_cvr;
 
+
+namespace cpp17
+{
 
 template<std::size_t Index, typename T>
-class TupleElement
+struct TupleElement
 {
-private:
-    T value_{};
-public:
+    T value;
     using type = T;
 
-    constexpr TupleElement() = default;
-
-    template<typename U /* ,typename = std::enable_if_t<std::is_convertible_v<U, T>> */>
-    constexpr TupleElement(U&& value) noexcept(std::is_nothrow_constructible_v<T,U>)
-        : value_{std::forward<U>(value)}
-        {
-            // std::cerr << "TupleElement<" << Index << ", "
-            //     << type_id_with_cvr<T>().pretty_name() << ">\n";
-        }
-
-    constexpr T&& Get() && noexcept { return std::move(value_); }
-    constexpr T& Get() & noexcept { return value_; }
-    constexpr T const& Get() const& noexcept { return value_; }
+    constexpr T& get_element(const std::integral_constant<std::size_t, Index>) & noexcept
+    {
+        return value;
+    }
+    constexpr T const& get_element(const std::integral_constant<std::size_t, Index>) const& noexcept
+    {
+        return value;
+    }
+    constexpr T && get_element(const std::integral_constant<std::size_t, Index>) && noexcept
+    {
+        return std::move(value);
+    }
+    constexpr T const&& get_element(const std::integral_constant<std::size_t, Index>) const&& noexcept
+    {
+        return std::move(value);
+    }
 };
-
-template<std::size_t I, typename T>
-using TupleElement_t = typename TupleElement<I,T>::type;
-
-
-template<std::size_t I, typename U>
-inline constexpr TupleElement_t<I,U>& Get_impl(TupleElement<I, U>& te) noexcept;
-
-template<std::size_t I, typename U>
-inline constexpr TupleElement_t<I,U> const& Get_impl(TupleElement<I, U> const& te) noexcept;
-
-template<std::size_t I, typename U>
-inline constexpr TupleElement_t<I,U>&& Get_impl(TupleElement<I,U>&& te) noexcept;
 
 
 template<typename Indices, typename... Ts>
 class Tuple_impl;
 
-
 // inherit from element<0, T0>, element<1, T1> ...
 template<std::size_t... Is, typename... Ts>
 class Tuple_impl<std::index_sequence<Is...>, Ts...> : private TupleElement<Is, Ts>...
 {
+    using TupleElement<Is, Ts>::get_element...;
 public:
-    constexpr Tuple_impl() = default;
+    constexpr Tuple_impl() noexcept = default;
     template<typename... Types
         ,typename = std::enable_if_t<sizeof...(Types) == sizeof...(Ts)
         && (... && std::is_constructible_v<Ts,Types>)>>
-    constexpr Tuple_impl(Types&&... ts) noexcept
+    constexpr explicit Tuple_impl(Types&&... ts) noexcept
         : TupleElement<Is,Ts>{std::forward<Types>(ts)}... { }
 
-
-    template<std::size_t I, typename T, typename... Types>
-    friend inline constexpr decltype(auto) Get(Tuple_impl<T, Types...>& t) noexcept;
-
-    template<std::size_t I, typename T, typename... Types>
-    friend inline constexpr decltype(auto) Get(Tuple_impl<T, Types...> const& t) noexcept;
-
-    template<std::size_t I, typename T, typename... Types>
-    friend inline constexpr decltype(auto) Get(Tuple_impl<T, Types...>&& t) noexcept;
+public:
+    template<std::size_t I>
+    constexpr decltype(auto) get() & noexcept
+    {
+        return get_element(std::integral_constant<std::size_t, I>{});
+    }
+    template<std::size_t I>
+    constexpr decltype(auto) get() const& noexcept
+    {
+        return get_element(std::integral_constant<std::size_t, I>{});
+    }
+    template<std::size_t I>
+    constexpr decltype(auto) get() && noexcept
+    {
+        return get_element(std::integral_constant<std::size_t, I>{});
+    }
+    template<std::size_t I>
+    constexpr decltype(auto) get() const&& noexcept
+    {
+        return get_element(std::integral_constant<std::size_t, I>{});
+    }
 };
-
-// template<typename... Types>
-// Tuple_impl(Types&&...) -> Tuple_impl<std::make_index_sequence<sizeof...(Types)>, Types...>;
 
 template<typename... Ts>
 class Tuple : public Tuple_impl<std::make_index_sequence<sizeof...(Ts)>, Ts...>
 {
     using Base = Tuple_impl<std::make_index_sequence<sizeof...(Ts)>, Ts...>;
 public:
-    constexpr Tuple() = default;
-
-    template<typename... Types>
-    constexpr Tuple(Types&&... ts) noexcept
-        : Base(std::forward<Types>(ts)...) { }
+    constexpr Tuple() noexcept = default;
+    using Base::Base;
+    using Base::get;
 };
+
+template<typename... Types>
+Tuple(Types&&...) -> Tuple<Types...>;
 
 template<typename... Ts>
 inline constexpr auto makeTuple(Ts&&... ts) noexcept
@@ -93,40 +94,26 @@ inline constexpr auto makeTuple(Ts&&... ts) noexcept
     return Tuple<Ts...>(std::forward<Ts>(ts)...);
 }
 
-template<std::size_t I, typename U>
-inline constexpr TupleElement_t<I,U>& Get_impl(TupleElement<I, U>& te) noexcept
-{
-        return te.Get();
-}
-
-template<std::size_t I, typename U>
-inline constexpr TupleElement_t<I,U>const& Get_impl(TupleElement<I, U> const& te) noexcept
-{
-        return te.Get();
-}
-
-template<std::size_t I, typename U>
-inline constexpr TupleElement_t<I,U>&& Get_impl(TupleElement<I, U>&& te) noexcept
-{
-        return std::move(te).Get();
-}
-
 template<std::size_t I, typename T, typename... Types>
 inline constexpr decltype(auto) Get(Tuple_impl<T, Types...>& t) noexcept
 {
-    return Get_impl<I>(t);
+    return t.template get<I>();
 }
 template<std::size_t I, typename T, typename... Types>
 inline constexpr decltype(auto) Get(Tuple_impl<T, Types...> const& t) noexcept
 {
-    return Get_impl<I>(t);
+    return t.template get<I>();
 }
 template<std::size_t I, typename T, typename... Types>
 inline constexpr decltype(auto) Get(Tuple_impl<T, Types...>&& t) noexcept
 {
-    return Get_impl<I>(std::move(t));
+    return std::move(t).template get<I>();
 }
-
+template<std::size_t I, typename T, typename... Types>
+inline constexpr decltype(auto) Get(Tuple_impl<T, Types...> const&& t) noexcept
+{
+    return std::move(t).template get<I>();
+}
 
 // Comparison operations
 /* --------------------------------------------------------------------------------------------- */
@@ -251,3 +238,5 @@ constexpr inline bool operator<(Tuple<Ts...> const& lhs, Tuple<Us...> const& rhs
                         rhs, std::index_sequence_for<Us...>{});
 }
 /* --------------------------------------------------------------------------------------------- */
+
+} // namespace cpp17

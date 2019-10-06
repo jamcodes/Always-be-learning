@@ -185,23 +185,16 @@ target_include_directories( ${PROJECT_NAME}
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
     )
-target_include_directories( ${PROJECT_NAME}
-    PRIVATE
-    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}>
-    $<INSTALL_INTERFACE:include/${PROJECT_NAME}>
-    )
-if(CPP_USE_CPPCHECK)
-    set_target_properties( ${PROJECT_NAME}
-        PROPERTIES
-        CXX_CPPCHECK "${Cppcheck}"
-    )
-endif()
-if(CPP_USE_CLANGTIDY)
-    set_target_properties( ${PROJECT_NAME}
-        PROPERTIES
-        CXX_CLANG_TIDY "${Clangtidy}"
-    )
-endif()
+add_executable(basic_tuple_cpp17
+    src/basic_tuple_17.cpp
+  )
+target_include_directories(basic_tuple_cpp17
+  PUBLIC
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+)
+target_link_libraries(basic_tuple_cpp17
+  Project_config
+)
 target_compile_options( ${PROJECT_NAME}
     PRIVATE
     # -fconcepts
