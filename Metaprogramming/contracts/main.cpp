@@ -8,16 +8,16 @@ using namespace std::string_literals;
 
 constexpr unsigned ModuleContractLevel{3};  // should normally be configured by the build system
 
-struct CerrHandler : ContractLevel<ModuleContractLevel> {
-    static void handle(source_location const& loc, const char* const expr)
+struct CerrHandler : jam::ContractLevel<ModuleContractLevel> {
+    static void handle(jam::source_location const& loc, const char* const expr)
     {
         std::cerr << "Contract violated -- " << loc.file << ":" << loc.line << ", expression = \"" << expr
                   << "\"\n";
     }
 };
 
-struct ThrowHandler : ContractLevel<ModuleContractLevel> {
-    static void handle(source_location const& loc, const char* const expr)
+struct ThrowHandler : jam::ContractLevel<ModuleContractLevel> {
+    static void handle(jam::source_location const& loc, const char* const expr)
     {
         std::string msg{"Contract violated -- "};
         msg.reserve(100);
@@ -31,8 +31,8 @@ struct ThrowHandler : ContractLevel<ModuleContractLevel> {
     }
 };
 
-struct TerminateHandler : ContractLevel<ModuleContractLevel> {
-    [[noreturn]] static void handle(source_location const& loc, const char* const expr) noexcept
+struct TerminateHandler : jam::ContractLevel<ModuleContractLevel> {
+    [[noreturn]] static void handle(jam::source_location const& loc, const char* const expr) noexcept
     {
         std::cerr << "Contract violated -- " << loc.file << ":" << loc.line << ", expression = \"" << expr
                   << "\"\n";
@@ -42,19 +42,19 @@ struct TerminateHandler : ContractLevel<ModuleContractLevel> {
 
 void foo(int* i) noexcept
 {
-    CONTRACT_ASSERTION(i != nullptr, CerrHandler{}, ContractLevel<2>{});
+    CONTRACT_ASSERTION(i != nullptr, CerrHandler{}, jam::ContractLevel<2>{});
     *i *= 42;
 }
 
 void bar(int* i)
 {
-    CONTRACT_ASSERTION(i != nullptr, ThrowHandler{}, ContractLevel<2>{});
+    CONTRACT_ASSERTION(i != nullptr, ThrowHandler{}, jam::ContractLevel<2>{});
     *i /= 42;
 }
 
 int baz(int i) noexcept
 {
-    CONTRACT_ASSERTION(i != 0, TerminateHandler{}, ContractLevel<2>{});
+    CONTRACT_ASSERTION(i != 0, TerminateHandler{}, jam::ContractLevel<2>{});
     return 42 / i;
 }
 

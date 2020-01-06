@@ -1,17 +1,21 @@
 #pragma once
 
-#include <type_traits>
 #include <utility>
 
 #define CONTRACT_STRINGIFY_IMPL(x) #x
 #define CONTRACT_STRINGIFY(x) CONTRACT_STRINGIFY_IMPL(x)
 
 #if defined(__GNUC__) || defined(__clang__)
-#define CONTRACT_LIKELY(x) __builtin_expect(!!(x), 1)
-#define CONTRACT_UNLIKELY(x) __builtin_expect(!!(x), 0)
+// Use `!!(cond)` to allow implicit conversions to bool?
+// #define CONTRACT_LIKELY(x) __builtin_expect(!!(x), 1)
+// #define CONTRACT_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define CONTRACT_LIKELY(x) __builtin_expect((x), 1)
+#define CONTRACT_UNLIKELY(x) __builtin_expect((x), 0)
 #else
-#define CONTRACT_LIKELY(x) (!!(x))
-#define CONTRACT_UNLIKELY(x) (!!(x))
+// #define CONTRACT_LIKELY(x) (!!(x))
+// #define CONTRACT_UNLIKELY(x) (!!(x))
+#define CONTRACT_LIKELY_(x) ((x))
+#define CONTRACT_UNLIKELY_(x) ((x))
 #endif
 
 // From Microsoft's GSL
@@ -22,14 +26,18 @@
 //
 #if defined(_MSC_VER)
 #define CONTRACT_ASSUME(cond) __assume(cond)
+#define CONTRACT_MARK_UNREACHABLE() __assume(0)
 #elif defined(__GNUC__)
 #define CONTRACT_ASSUME(cond) ((cond) ? static_cast<void>(0) : __builtin_unreachable())
+#define CONTRACT_MARK_UNREACHABLE() __builtin_unreachable()
 #elif defined(__has_builtin)
 #if __has_builtin(__builtin_unreachable)
 #define CONTRACT_ASSUME(cond) ((cond) ? static_cast<void>(0) : __builtin_unreachable())
+#define CONTRACT_MARK_UNREACHABLE() __builtin_unreachable()
 #endif
 #else
 #define CONTRACT_ASSUME(cond) static_cast<void>((cond) ? 0 : 0)
+#define CONTRACT_MARK_UNREACHABLE()
 #endif
 
 #if !defined(CONTRACT_FORCE_INLINE)
@@ -46,22 +54,27 @@
 #endif
 #endif
 
+namespace jam {
+
 struct source_location final {
     const char* file;
     unsigned line;
 };
 
 #define CONTRACT_SRC_LOC() \
-    source_location { __FILE__, static_cast<unsigned>(__LINE__) }
+    jam::source_location { __FILE__, static_cast<unsigned>(__LINE__) }
 
-// TODO: Incorporate "Ignore -> Inform -> Enforce -> Assume" workflow
-// Inform and Enforce could probably be merged into onc, once a Handler is delivered as a
-// customization point -> it can be decided at the handler level if we want to inform (log) or
-// enforce (exception, or terminate). Alternatively Handlers could be required to deliver both
-// `inform()` and `enforce()` so that the type of action on broken contract is enforced.
+namespace detail
+{
+template<bool B, typename True, typename False> struct IfThenElse {
+    using type = False;
+};
+template<typename True, typename False>
+struct IfThenElse<true, True, False> {
+    using type = True;
+};
+} // namespace detail
 
-// template <unsigned Level>
-// inline constexpr auto IsActive{ContractLevel <= Level};
 
 template <unsigned Level>
 struct ContractLevel {
@@ -77,14 +90,14 @@ using Enforce = ContractLevel<2>;
 
 template <typename Handler, unsigned Level>
 struct AssertionLevelIgnoreAssume
-    : std::conditional<Handler::level == Assume::level &&
+    : detail::IfThenElse<Handler::level == Assume::level &&
                            (Level == Enforce::level || Level == Assume::level),
                        Assume, Ignore> {
 };
 
 template <typename Handler, unsigned Level>
 struct AssertionLevelEnforce
-    : std::conditional<Level <= Handler::level && (Level > Ignore::level), Enforce,
+    : detail::IfThenElse<Level <= Handler::level && (Level > Ignore::level), Enforce,
                        typename AssertionLevelIgnoreAssume<Handler, Level>::type> {
 };
 
@@ -107,7 +120,7 @@ constexpr inline void contract_assert_failed(
 }
 
 template <typename Handler, typename Level = Enforce, typename = AssertionLevel<Handler, Level>>
-struct ContractAssert {
+struct ContractAssert final {
     template <typename Expr, typename... Args>
     static constexpr void do_assert(
         Expr const& expr, source_location const& loc, const char* const expr_str,
@@ -121,7 +134,7 @@ struct ContractAssert {
 };
 
 template <typename Handler, typename Level>
-struct ContractAssert<Handler, Level, Ignore> {
+struct ContractAssert<Handler, Level, Ignore> final {
     template <typename Expr, typename... Args>
     static constexpr inline void do_assert(Expr const&, source_location const&, const char* const,
                                            Args&&...) noexcept
@@ -130,7 +143,7 @@ struct ContractAssert<Handler, Level, Ignore> {
 };
 
 template <typename Handler, typename Level>
-struct ContractAssert<Handler, Level, Assume> {
+struct ContractAssert<Handler, Level, Assume> final {
     template <typename Expr, typename... Args>
     static constexpr inline void do_assert(Expr const& expr, source_location const&,
                                            const char* const, Args&&...) noexcept
@@ -163,17 +176,20 @@ constexpr inline void do_contract_assertion(
                                                        std::forward<Args>(args)...);
 }
 
+}  // namespace jam
+
 // TODO: Decide which frontend interface to choose
 
-#define CONTRACT_ASSERT(eXPR, hANDLER, lEVEL)                                                    \
-    static_cast<void>(ContractAssert<hANDLER, lEVEL>::do_assert([&]() noexcept { return eXPR; }, \
-                                                                CONTRACT_SRC_LOC(), #eXPR))
+#define CONTRACT_ASSERT(eXPR, hANDLER, lEVEL)                                           \
+    static_cast<void>(                                                                  \
+        jam::ContractAssert<hANDLER, lEVEL>::do_assert([&]() noexcept { return eXPR; }, \
+                                                       CONTRACT_SRC_LOC(), #eXPR))
 
-#define CONTRACT_ASSERT_VA(eXPR, hANDLER, lEVEL, ...)                                            \
-    static_cast<void>(ContractAssert<hANDLER, lEVEL>::do_assert([&]() noexcept { return eXPR; }, \
-                                                                CONTRACT_SRC_LOC(), #eXPR,       \
-                                                                __VA_ARGS__))
+#define CONTRACT_ASSERT_VA(eXPR, hANDLER, lEVEL, ...)                                   \
+    static_cast<void>(                                                                  \
+        jam::ContractAssert<hANDLER, lEVEL>::do_assert([&]() noexcept { return eXPR; }, \
+                                                       CONTRACT_SRC_LOC(), #eXPR, __VA_ARGS__))
 
-#define CONTRACT_ASSERTION(eXPR, ...)                                                            \
-    static_cast<void>(do_contract_assertion([&]() noexcept { return eXPR; }, CONTRACT_SRC_LOC(), \
-                                            #eXPR, __VA_ARGS__))
+#define CONTRACT_ASSERTION(eXPR, ...)                                             \
+    static_cast<void>(jam::do_contract_assertion([&]() noexcept { return eXPR; }, \
+                                                 CONTRACT_SRC_LOC(), #eXPR, __VA_ARGS__))
