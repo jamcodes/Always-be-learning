@@ -26,6 +26,12 @@ public:
     {
     }
 
+    strong_typedef(strong_typedef const&) noexcept(std::is_nothrow_copy_constructible_v<T>) = default;
+    strong_typedef(strong_typedef&&) noexcept(std::is_nothrow_move_constructible_v<T>) = default;
+    strong_typedef& operator=(strong_typedef const&) noexcept(std::is_nothrow_copy_assignable_v<T>) = default;
+    strong_typedef& operator=(strong_typedef&&) noexcept(std::is_nothrow_move_assignable_v<T>) = default;
+    ~strong_typedef() noexcept = default;
+
     explicit constexpr operator T&() & noexcept { return value_; }
     explicit constexpr operator const T&() const& noexcept { return value_; }
     explicit constexpr operator T&&() && noexcept { return std::move(value_); }

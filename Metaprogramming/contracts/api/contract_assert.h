@@ -112,7 +112,7 @@ struct noop_handler {
 };
 
 template <class Handler, typename... Args>
-constexpr inline void contract_assert_failed(
+constexpr void contract_assert_failed(
     source_location const& loc, const char* const expr_str,
     Args&&... args) noexcept(noexcept(Handler::handle(loc, expr_str, std::forward<Args>(args)...)))
 {
@@ -122,7 +122,7 @@ constexpr inline void contract_assert_failed(
 template <typename Handler, typename Level = Enforce, typename = AssertionLevel<Handler, Level>>
 struct ContractAssert final {
     template <typename Expr, typename... Args>
-    static constexpr void do_assert(
+    static constexpr inline void do_assert(
         Expr const& expr, source_location const& loc, const char* const expr_str,
         Args&&... args) noexcept(noexcept(Handler::handle(loc, expr_str,
                                                           std::forward<Args>(args)...)))
@@ -164,7 +164,7 @@ constexpr inline void do_contract_assertion(
                                                                     std::forward<Args>(args)...);
 }
 
-template <typename Expr, typename Handler, unsigned Level, typename... Args>
+template <typename Expr, typename Handler, typename... Args>
 constexpr inline void do_contract_assertion(
     Expr const& expr, source_location const& loc, const char* const expr_str, Handler const,
     Args&&... args) noexcept(noexcept(ContractAssert<Handler,
