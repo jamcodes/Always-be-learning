@@ -10,18 +10,18 @@
 // are ready. Note that the threads will run truly concurrently only if the hardware allows
 // that many concurrent threads.
 
-
 // utility to construct N instances of type T initialized with arguments Args...
 template <typename T, std::size_t = 0>
 struct construct_impl {
     template <typename... Args>
-    constexpr auto operator()(Args&&... args) const noexcept(std::is_nothrow_constructible_v<T, Args...>)
+    constexpr auto operator()(Args&&... args) const
+        noexcept(std::is_nothrow_constructible_v<T, Args...>)
     {
         return T{std::forward<Args>(args)...};
     }
 };
 
-template<typename T, std::size_t Id = 0>
+template <typename T, std::size_t Id = 0>
 constexpr inline auto construct{construct_impl<T, Id>{}};
 
 template <std::size_t... Is, typename... Fs>
