@@ -1,0 +1,22 @@
+#ifndef TRACE_LEVEL_HEADER_GUARD_HPP_
+#define TRACE_LEVEL_HEADER_GUARD_HPP_
+#cmakedefine ENABLE_TRACE_LOGS
+
+enum class TraceLevel : unsigned char
+{
+    Fatal,
+    Error,
+    Debug,
+    Verbose,
+    Off
+};
+
+namespace detail
+{
+struct ActiveTraceLevel
+{
+    static constexpr TraceLevel value{TraceLevel::@TRACE_LEVEL@};
+};
+} // namespace detail
+
+#endif    // TRACE_LEVEL_HEADER_GUARD_HPP
