@@ -11,7 +11,7 @@
 // that many concurrent threads.
 
 // utility to construct N instances of type T initialized with arguments Args...
-template <typename T, std::size_t = 0>
+template<typename T, std::size_t = 0>
 struct construct_impl {
     template <typename... Args>
     constexpr auto operator()(Args&&... args) const
@@ -24,7 +24,7 @@ struct construct_impl {
 template <typename T, std::size_t Id = 0>
 constexpr inline auto construct{construct_impl<T, Id>{}};
 
-template <std::size_t... Is, typename... Fs>
+template<std::size_t... Is, typename... Fs>
 auto even_start_impl(std::index_sequence<Is...>, Fs&&... fs)
 {
     std::promise<void> go{};
@@ -42,7 +42,7 @@ auto even_start_impl(std::index_sequence<Is...>, Fs&&... fs)
     return futures;
 }
 
-template <typename... Fs>
+template<typename... Fs>
 auto even_start(Fs&&... fs)
 {
     using Indices = std::make_index_sequence<sizeof...(Fs)>;
