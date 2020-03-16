@@ -66,6 +66,27 @@
 #endif  // __has_attribute
 #endif  // CONTRACT_NEVER_INLINE
 
+#if !defined(CONTRACT_DEBUG_TRAP)
+#if defined(_MSC_VER)
+#define CONTRACT_DEBUG_TRAP() __debugbreak()
+#elif defined(__has_builtin)
+#if __has_builtin(__builtin_debugtrap)
+#define CONTRACT_DEBUG_TRAP() __builtin_debugtrap()
+#else
+#define CONTRACT_DEBUG_TRAP()
+#endif
+#elif defined(__GNUC__)
+#include <signal.h>
+#if defined(SIGTRAP)
+#define CONTRACT_DEBUG_TRAP() raise(SIGTRAP)
+#else
+#define CONTRACT_DEBUG_TRAP()
+#endif
+#else
+#define CONTRACT_DEBUG_TRAP()
+#endif
+#endif
+
 namespace jam {
 
 struct source_location final {
@@ -85,6 +106,15 @@ template <typename True, typename False>
 struct IfThenElse<true, True, False> {
     using type = True;
 };
+
+[[noreturn]] inline void terminate() noexcept
+{
+#if !defined(NDEBUG)
+    CONTRACT_DEBUG_TRAP();
+#endif
+    std::terminate();
+}
+
 }  // namespace detail
 
 template <unsigned Level>
@@ -131,7 +161,7 @@ constexpr void contract_assert_failed(
     return Handler::handle(loc, expr_str, std::forward<Args>(args)...), static_cast<void>(0);
 }
 
-// Consider fodcing these inline to potentially improve codegen?
+// Consider forcing these inline to potentially improve codegen?
 template <typename Handler, typename Level = Enforce, typename = AssertionLevel<Handler, Level>>
 struct ContractAssert final {
     template <typename Expr, typename... Args>
@@ -190,6 +220,13 @@ constexpr inline void do_contract_assertion(
 }
 
 }  // namespace jam
+
+// TODO: Configure this on a dedicated variable, rather than NDEBUG
+#if !defined(NDEBUG)
+#define CONTRACT_FAST_ASSERT(eXPR) CONTRACT_LIKELY(eXPR) ? static_cast<void>(0) : jam::detail::terminate();
+#else
+#define CONTRACT_FAST_ASSERT(eXPR) CONTRACT_ASSUME(eXPR)
+#endif
 
 // TODO: Decide which frontend interface to choose
 
