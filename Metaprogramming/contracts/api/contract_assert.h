@@ -14,8 +14,8 @@
 #else
 // #define CONTRACT_LIKELY(x) (!!(x))
 // #define CONTRACT_UNLIKELY(x) (!!(x))
-#define CONTRACT_LIKELY_(x) ((x))
-#define CONTRACT_UNLIKELY_(x) ((x))
+#define CONTRACT_LIKELY_(x) (x)
+#define CONTRACT_UNLIKELY_(x) (x)
 #endif
 
 // From Microsoft's GSL
@@ -54,6 +54,18 @@
 #endif
 #endif
 
+#if !defined(CONTRACT_NEVER_INLINE)
+#if defined(_MSC_VER)
+#define CONTRACT_NEVER_INLINE __declspec(noinline)
+#elif defined(__has_attribute)
+#if __has_attribute(noinline)
+#define CONTRACT_NEVER_INLINE __attribute__((noinline))
+#endif  // __has_attribute(noinline)
+#else
+#define CONTRACT_NEVER_INLINE
+#endif  // __has_attribute
+#endif  // CONTRACT_NEVER_INLINE
+
 namespace jam {
 
 struct source_location final {
@@ -64,17 +76,16 @@ struct source_location final {
 #define CONTRACT_SRC_LOC() \
     jam::source_location { __FILE__, static_cast<unsigned>(__LINE__) }
 
-namespace detail
-{
-template<bool B, typename True, typename False> struct IfThenElse {
+namespace detail {
+template <bool B, typename True, typename False>
+struct IfThenElse {
     using type = False;
 };
-template<typename True, typename False>
+template <typename True, typename False>
 struct IfThenElse<true, True, False> {
     using type = True;
 };
-} // namespace detail
-
+}  // namespace detail
 
 template <unsigned Level>
 struct ContractLevel {
@@ -91,14 +102,14 @@ using Enforce = ContractLevel<2>;
 template <typename Handler, unsigned Level>
 struct AssertionLevelIgnoreAssume
     : detail::IfThenElse<Handler::level == Assume::level &&
-                           (Level == Enforce::level || Level == Assume::level),
-                       Assume, Ignore> {
+                             (Level == Enforce::level || Level == Assume::level),
+                         Assume, Ignore> {
 };
 
 template <typename Handler, unsigned Level>
 struct AssertionLevelEnforce
     : detail::IfThenElse<Level <= Handler::level && (Level > Ignore::level), Enforce,
-                       typename AssertionLevelIgnoreAssume<Handler, Level>::type> {
+                         typename AssertionLevelIgnoreAssume<Handler, Level>::type> {
 };
 
 template <typename Handler, typename Level>
@@ -111,6 +122,7 @@ struct noop_handler {
     }
 };
 
+// Consider forcing this noinline to potentially improve codegen?
 template <class Handler, typename... Args>
 constexpr void contract_assert_failed(
     source_location const& loc, const char* const expr_str,
@@ -119,6 +131,7 @@ constexpr void contract_assert_failed(
     return Handler::handle(loc, expr_str, std::forward<Args>(args)...), static_cast<void>(0);
 }
 
+// Consider fodcing these inline to potentially improve codegen?
 template <typename Handler, typename Level = Enforce, typename = AssertionLevel<Handler, Level>>
 struct ContractAssert final {
     template <typename Expr, typename... Args>
@@ -180,12 +193,17 @@ constexpr inline void do_contract_assertion(
 
 // TODO: Decide which frontend interface to choose
 
-#define CONTRACT_ASSERT(eXPR, hANDLER, lEVEL)                                           \
+#define CONTRACT_ASSERT(eXPR, hANDLER, lEVEL, ...)                                      \
     static_cast<void>(                                                                  \
         jam::ContractAssert<hANDLER, lEVEL>::do_assert([&]() noexcept { return eXPR; }, \
-                                                       CONTRACT_SRC_LOC(), #eXPR))
+                                                       CONTRACT_SRC_LOC(), #eXPR, __VA_ARGS__))
 
-#define CONTRACT_ASSERT_VA(eXPR, hANDLER, lEVEL, ...)                                   \
+#define CONTRACT_EXPECTS(eXPR, hANDLER, lEVEL, ...)                                      \
+    static_cast<void>(                                                                  \
+        jam::ContractAssert<hANDLER, lEVEL>::do_assert([&]() noexcept { return eXPR; }, \
+                                                       CONTRACT_SRC_LOC(), #eXPR, __VA_ARGS__))
+
+#define CONTRACT_ENSURES(eXPR, hANDLER, lEVEL, ...)                                      \
     static_cast<void>(                                                                  \
         jam::ContractAssert<hANDLER, lEVEL>::do_assert([&]() noexcept { return eXPR; }, \
                                                        CONTRACT_SRC_LOC(), #eXPR, __VA_ARGS__))
