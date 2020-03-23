@@ -223,27 +223,25 @@ constexpr inline void do_contract_assertion(
 
 // TODO: Configure this on a dedicated variable, rather than NDEBUG
 #if !defined(NDEBUG)
-#define CONTRACT_FAST_ASSERT(eXPR) CONTRACT_LIKELY(eXPR) ? static_cast<void>(0) : jam::detail::terminate();
+#define CONTRACT_FAST_ASSERT(eXPR) \
+    CONTRACT_LIKELY(eXPR) ? static_cast<void>(0) : jam::detail::terminate();
 #else
 #define CONTRACT_FAST_ASSERT(eXPR) CONTRACT_ASSUME(eXPR)
 #endif
 
 // TODO: Decide which frontend interface to choose
 
-#define CONTRACT_ASSERT(eXPR, hANDLER, lEVEL, ...)                                      \
-    static_cast<void>(                                                                  \
-        jam::ContractAssert<hANDLER, lEVEL>::do_assert([&]() noexcept { return eXPR; }, \
-                                                       CONTRACT_SRC_LOC(), #eXPR, __VA_ARGS__))
+#define CONTRACT_ASSERT(eXPR, hANDLER, lEVEL, ...)                    \
+    static_cast<void>(jam::ContractAssert<hANDLER, lEVEL>::do_assert( \
+        [&]() noexcept { return eXPR; }, CONTRACT_SRC_LOC(), #eXPR, __VA_ARGS__))
 
-#define CONTRACT_EXPECTS(eXPR, hANDLER, lEVEL, ...)                                      \
-    static_cast<void>(                                                                  \
-        jam::ContractAssert<hANDLER, lEVEL>::do_assert([&]() noexcept { return eXPR; }, \
-                                                       CONTRACT_SRC_LOC(), #eXPR, __VA_ARGS__))
+#define CONTRACT_EXPECTS(eXPR, hANDLER, lEVEL, ...)                   \
+    static_cast<void>(jam::ContractAssert<hANDLER, lEVEL>::do_assert( \
+        [&]() noexcept { return eXPR; }, CONTRACT_SRC_LOC(), #eXPR, __VA_ARGS__))
 
-#define CONTRACT_ENSURES(eXPR, hANDLER, lEVEL, ...)                                      \
-    static_cast<void>(                                                                  \
-        jam::ContractAssert<hANDLER, lEVEL>::do_assert([&]() noexcept { return eXPR; }, \
-                                                       CONTRACT_SRC_LOC(), #eXPR, __VA_ARGS__))
+#define CONTRACT_ENSURES(eXPR, hANDLER, lEVEL, ...)                   \
+    static_cast<void>(jam::ContractAssert<hANDLER, lEVEL>::do_assert( \
+        [&]() noexcept { return eXPR; }, CONTRACT_SRC_LOC(), #eXPR, __VA_ARGS__))
 
 #define CONTRACT_ASSERTION(eXPR, ...)                                             \
     static_cast<void>(jam::do_contract_assertion([&]() noexcept { return eXPR; }, \
