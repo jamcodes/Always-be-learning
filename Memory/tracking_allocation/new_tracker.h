@@ -15,7 +15,7 @@
 #ifdef _MSC_VER
     return _aligned_malloc(size, align);  // Windows API
 #elif defined(__MINGW32__) || defined(__MINGW64__)
-    return _aligned_malloc(size, align);  //
+    return _aligned_malloc(size, align);  // MSYS, MinGW
 #else
     return std::aligned_alloc(align, size);  // C++17 API
 #endif
@@ -26,7 +26,7 @@ inline void my_aligned_free(void* p) noexcept
 #ifdef _MSC_VER
     _aligned_free(p);  // Windows API
 #elif defined(__MINGW32__) || defined(__MINGW64__)
-    _aligned_free(p);
+    _aligned_free(p);   // MSYS, MinGW
 #else
     std::free(p);   // C++17 API
 #endif
@@ -113,7 +113,7 @@ struct NewTracker {
     {
         printf_s("Allocations:   %d => %zu bytes\n", num_allocs, total_allocated);
         printf_s("Deallocations: %d\n", num_delete);
-        puts("Not deallocated memory");
+        puts("\nNon-deallocated memory");
         for (auto i{0}; i != allocs.size(); ++i) {
             auto const p = allocs[i];
             if (p != nullptr) {
