@@ -8,14 +8,16 @@
 template <typename Tuple, typename Function, std::size_t... Is>
 constexpr void
 tuple_for_each_impl(Tuple&& tuple, Function&& function, std::index_sequence<Is...>) noexcept(
-    (... && std::is_nothrow_invocable_v<Function, std::tuple_element_t<Is, std::decay_t<Tuple>>>))
+    (... &&
+     std::is_nothrow_invocable_v<Function, decltype(std::get<Is>(std::forward<Tuple>(tuple)))>))
 {
     (..., std::forward<Function>(function)(std::get<Is>(std::forward<Tuple>(tuple))));
 }
 
 template <typename Tuple, typename Function>
-constexpr void tuple_for_each(Tuple&& tuple, Function&& function)
-// noexcept(std::is_nothrow_invocable_v<tuple_for_each_impl<Tuple, Function)
+constexpr void tuple_for_each(Tuple&& tuple, Function&& function) noexcept(noexcept(
+    tuple_for_each_impl(std::forward<Tuple>(tuple), std::forward<Function>(function),
+                        std::make_index_sequence<std::tuple_size_v<std::decay_t<Tuple>>>{})))
 {
     using Indices = std::make_index_sequence<std::tuple_size_v<std::decay_t<Tuple>>>;
     tuple_for_each_impl(std::forward<Tuple>(tuple), std::forward<Function>(function), Indices{});
@@ -85,27 +87,36 @@ namespace alt3 {
 template <typename Indices>
 struct tuple_for_each_impl;
 
-template <>
-struct tuple_for_each_impl<std::index_sequence<>> {
-    template <typename Tuple, typename Predicate>
-    constexpr void operator()(Tuple&&, Predicate&&) const
+template <std::size_t I>
+struct tuple_for_each_impl<std::index_sequence<I>> {
+    template <typename Tuple, typename Function>
+    constexpr void operator()(Tuple&& tuple, Function&& function) const noexcept(
+        std::is_nothrow_invocable_v<Function&&, decltype(std::get<I>(std::forward<Tuple>(tuple)))>)
     {
+        std::forward<Function>(function)(std::get<I>(std::forward<Tuple>(tuple)));
     }
 };
 
 template <std::size_t I, std::size_t... Is>
 struct tuple_for_each_impl<std::index_sequence<I, Is...>> {
     template <typename Tuple, typename Function>
-    constexpr void operator()(Tuple&& tuple, Function&& function) const
+    constexpr void operator()(Tuple&& tuple, Function&& function) const noexcept(
+        std::is_nothrow_invocable_v<Function, decltype(std::get<I>(std::forward<Tuple>(tuple)))>&&
+            std::is_nothrow_invocable_v<tuple_for_each_impl<std::index_sequence<Is...>>, Tuple&&,
+                                        Function&&>)
     {
-        std::forward<Function>(function)(std::get<I>(std::forward<Tuple>(tuple)));
+        function(std::get<I>(std::forward<Tuple>(tuple)));
         tuple_for_each_impl<std::index_sequence<Is...>>{}(std::forward<Tuple>(tuple),
                                                           std::forward<Function>(function));
     }
 };
 
 template <typename Tuple, typename Function>
-constexpr void tuple_for_each(Tuple&& tuple, Function&& function)
+constexpr void tuple_for_each(Tuple&& tuple, Function&& function) noexcept(
+    std::is_nothrow_invocable_v<
+        tuple_for_each_impl<std::make_index_sequence<std::tuple_size_v<std::decay_t<Tuple>>>>,
+        Tuple&&, Function&&>
+)
 {
     using Indices = std::make_index_sequence<std::tuple_size_v<std::decay_t<Tuple>>>;
     return tuple_for_each_impl<Indices>{}(std::forward<Tuple>(tuple),
