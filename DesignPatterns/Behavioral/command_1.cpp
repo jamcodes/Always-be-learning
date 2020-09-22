@@ -4,6 +4,10 @@
  * The `Command` design pattern decouples sender from the request receiver. It encapsulates a
  * request as an object, allowing for client parameterization with different requests.
  * It can be used to implement undoable operations.
+ *
+ * Alternative definition:
+ * Command is an object which represents an instruction to perform a particular action.
+ * It contains all the information necessary for the action to be taken.
  */
 
 class Command {

@@ -28,7 +28,8 @@ template<std::size_t... Is, typename... Fs>
 auto even_start_impl(std::index_sequence<Is...>, Fs&&... fs)
 {
     std::promise<void> go{};
-    auto ready_flags{std::make_tuple(construct<std::promise<void>, Is>()...)};
+    // auto ready_flags{std::make_tuple(construct<std::promise<void>, Is>()...)};
+    std::array<std::promise<void>, sizeof...(Is)> ready_flags{};
     std::shared_future<void> go_future{go.get_future()};
     auto futures{std::make_tuple(std::async(
         std::launch::async,
