@@ -114,7 +114,7 @@ public:
     iterator erase(const_iterator first, const_iterator last);
     size_type erase(key_type const& key);
 
-    void swap(BinaryTree& other) noexcept
+    void swap(BinaryTree& other) noexcept;
 
     // lookup
     size_type count(Key const& key);

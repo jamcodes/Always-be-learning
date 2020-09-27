@@ -265,16 +265,16 @@ inline constexpr jam::ContractLevel<JAM_CONTRACT_LEVEL_CONFIG> global_contract_l
 }  // namespace jam
 
 #if (JAM_CONTRACT_LEVEL_CONFIG >= JAM_CONTRACT_LEVEL_ENFORCE)
-// #define CONTRACT_ASSERT(eXPR) \
-//     JAM_LIKELY(eXPR) ? static_cast<void>(0) : ::jam::assert_failure(CONTRACT_SRC_LOC(), #eXPR);
-// #define CONTRACT_ASSERT(eXPR, msg) \
-//     JAM_LIKELY(eXPR) ? static_cast<void>(0) : ::jam::assert_failure(CONTRACT_SRC_LOC(), #eXPR, msg);
-// #define CONTRACT_ASSERT(eXPR) \
-//     if(JAM_LIKELY(eXPR)) { } else {::jam::assert_failure(CONTRACT_SRC_LOC(), #eXPR); }
-// #define CONTRACT_ASSERT(eXPR, msg) \
-//     if(JAM_LIKELY(eXPR)) { } else { ::jam::assert_failure(CONTRACT_SRC_LOC(), #eXPR, msg); }
-// #define CONTRACT_ASSERT(eXPR) \
-//     if(!JAM_LIKELY(eXPR)) {::jam::assert_failure(CONTRACT_SRC_LOC(), #eXPR); }
+/*  #define CONTRACT_ASSERT(eXPR) \
+     JAM_LIKELY(eXPR) ? static_cast<void>(0) : ::jam::assert_failure(CONTRACT_SRC_LOC(), #eXPR);
+ #define CONTRACT_ASSERT(eXPR, msg) \
+     JAM_LIKELY(eXPR) ? static_cast<void>(0) : ::jam::assert_failure(CONTRACT_SRC_LOC(), #eXPR, msg);
+ #define CONTRACT_ASSERT(eXPR) \
+     if(JAM_LIKELY(eXPR)) { } else {::jam::assert_failure(CONTRACT_SRC_LOC(), #eXPR); }
+ #define CONTRACT_ASSERT(eXPR, msg) \
+     if(JAM_LIKELY(eXPR)) { } else { ::jam::assert_failure(CONTRACT_SRC_LOC(), #eXPR, msg); }
+ #define CONTRACT_ASSERT(eXPR) \
+     if(!JAM_LIKELY(eXPR)) {::jam::assert_failure(CONTRACT_SRC_LOC(), #eXPR); } */
 #define CONTRACT_ASSERT(eXPR, msg)                             \
     if (!JAM_LIKELY(eXPR)) {                              \
         ::jam::assert_failure(CONTRACT_SRC_LOC(), #eXPR, msg); \

@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.15)
-project(SingleLinkedList)
+project(BinaryTree)
 
-add_library(SingleLinkedList_SingleLinkedList INTERFACE)
-add_library(SingleLinkedList::SingleLinkedList ALIAS SingleLinkedList_SingleLinkedList)
+add_library(BinaryTree_BinaryTree INTERFACE)
+add_library(BinaryTree::BinaryTree ALIAS BinaryTree_BinaryTree)
 
-target_link_libraries(SingleLinkedList_SingleLinkedList
+target_link_libraries(BinaryTree_BinaryTree
     INTERFACE
         DataStructures::Utils
 )
