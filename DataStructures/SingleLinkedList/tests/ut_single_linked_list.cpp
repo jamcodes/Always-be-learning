@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <array>
 #include <string>
+#include <vector>
+#include <random>
 
 namespace
 {
@@ -52,6 +54,62 @@ TEST(SingleLinkedListTest, clear_empties_the_sll)
     EXPECT_FALSE(sut.empty());
     sut.clear();
     EXPECT_TRUE(sut.empty());
+}
+
+TEST(SingleLinkedListTest, copy_assignment_to_empty)
+{
+    SingleLinkedList<int> sut{};
+    SingleLinkedList<int> to_assign{1,2,3,4};
+    sut = to_assign;
+    ASSERT_TRUE(std::equal(sut.cbegin(), sut.cend(), to_assign.cbegin(), to_assign.cend()));
+}
+
+TEST(SingleLinkedListTest, copy_assign_both_nonempty)
+{
+    SingleLinkedList<int> sut{1,2,3,4,5};
+    SingleLinkedList<int> to_assign{9,8,7,6};
+    sut = to_assign;
+    ASSERT_TRUE(std::equal(sut.cbegin(), sut.cend(), to_assign.cbegin(), to_assign.cend()));
+}
+
+TEST(SingleLinkedListTest, copy_assign_empty)
+{
+    SingleLinkedList<int> sut{1,2,3,4,5};
+    SingleLinkedList<int> to_assign{};
+    sut = to_assign;
+    ASSERT_TRUE(std::equal(sut.cbegin(), sut.cend(), to_assign.cbegin(), to_assign.cend()));
+}
+
+TEST(SingleLinkedListTest, move_assign_empty)
+{
+    SingleLinkedList<int> sut{1,2,3,4,5};
+    SingleLinkedList<int> to_assign{};
+    sut = std::move(to_assign);
+    ASSERT_TRUE(sut.empty());
+}
+
+TEST(SingleLinkedListTest, move_assign_to_empty)
+{
+    SingleLinkedList<int> sut{};
+    constexpr std::array<int, 5> init{1,2,3,4,5};
+    SingleLinkedList<int> to_assign{init.cbegin(), init.cend()};
+    auto const p = to_assign.cbegin();
+    sut = std::move(to_assign);
+    auto const p_moved = sut.cbegin();
+    ASSERT_TRUE(std::equal(sut.cbegin(), sut.cend(), init.cbegin(), init.cend()));
+    ASSERT_EQ(p, p_moved);
+}
+
+TEST(SingleLinkedListTest, move_assign_both_nonempty)
+{
+    SingleLinkedList<int> sut{};
+    constexpr std::array<int, 5> init{1,2,3,4,5};
+    SingleLinkedList<int> to_assign{init.cbegin(), init.cend()};
+    auto const p = to_assign.cbegin();
+    sut = std::move(to_assign);
+    auto const p_moved = sut.cbegin();
+    ASSERT_TRUE(std::equal(sut.cbegin(), sut.cend(), init.cbegin(), init.cend()));
+    ASSERT_EQ(p, p_moved);
 }
 
 TEST(SingleLinkedListTest, swap_exchanges_heads)
@@ -377,6 +435,252 @@ TEST(SingleLinkedListMergeTest, merge_on_an_empty_list_swaps)
 
     ASSERT_TRUE(sll_b.empty());
     ASSERT_TRUE(std::equal(sll_a.cbegin(), sll_a.cend(), elems_b.cbegin()));
+}
+
+class SingleLinkedListRemovingModifiersParamTest : public ::testing::Test, public ::testing::WithParamInterface<int>
+{
+public:
+    static constexpr std::array<int, 10> ints_{1, 2, 2, 2, 3, 3, 3, 4, 5, 5};
+protected:
+    using Node = SLL_Node<int>;
+    SingleLinkedList<int> sut{ints_.cbegin(), ints_.cend()};
+    const std::ptrdiff_t initial_count{std::count_if(sut.cbegin(), sut.cend(), [](auto&&)noexcept{return true;})};
+
+    SingleLinkedListRemovingModifiersParamTest()
+    {
+        EXPECT_EQ(initial_count, ints_.size());
+    }
+};
+
+TEST_P(SingleLinkedListRemovingModifiersParamTest, remove_erases_elements)
+{
+    auto const to_remove{GetParam()};
+    auto const to_remove_count{std::count_if(sut.cbegin(), sut.cend(),
+                                            [&to_remove](auto const& v)noexcept{return v == to_remove;})};
+    auto const removed_count = sut.remove(to_remove);
+    ASSERT_EQ(removed_count, to_remove_count);
+    auto const count_after_remove = std::count_if(sut.cbegin(), sut.cend(), [](auto&&)noexcept{return true;});
+    ASSERT_EQ(count_after_remove, initial_count - to_remove_count);
+}
+
+INSTANTIATE_TEST_CASE_P(RemoveTest, SingleLinkedListRemovingModifiersParamTest,
+    testing::Values(
+        SingleLinkedListRemovingModifiersParamTest::ints_.front(),
+        SingleLinkedListRemovingModifiersParamTest::ints_.back(),
+        SingleLinkedListRemovingModifiersParamTest::ints_[SingleLinkedListRemovingModifiersParamTest::ints_.size()/2]
+        ));
+
+TEST_F(SingleLinkedListRemovingModifiersTest, remove_with_value_nosuch_element_is_noop)
+{
+    constexpr int nosuch_element{42};
+    auto const removed_count = sut.remove(nosuch_element);
+    ASSERT_EQ(removed_count, 0);
+    auto const count_after_remove = std::count_if(sut.cbegin(), sut.cend(), [](auto&&)noexcept{return true;});
+    ASSERT_EQ(count_after_remove, initial_count);
+}
+
+class SingleLinkedListPredicateParamTest : public ::testing::Test,
+                                          public ::testing::WithParamInterface<bool(*)(int)>
+{
+public:
+    static constexpr std::array<int, 10> ints_{1, 2, 2, 2, 3, 3, 3, 4, 5, 5};
+protected:
+    using Node = SLL_Node<int>;
+    SingleLinkedList<int> sut{ints_.cbegin(), ints_.cend()};
+    const std::ptrdiff_t initial_count{std::count_if(sut.cbegin(), sut.cend(), [](auto&&)noexcept{return true;})};
+
+    SingleLinkedListPredicateParamTest()
+    {
+        EXPECT_EQ(initial_count, ints_.size());
+    }
+};
+
+TEST_P(SingleLinkedListPredicateParamTest, remove_if_removes_values_that_match_the_predicate)
+{
+    auto const pred{GetParam()};
+    auto to_remove_count = std::count_if(sut.cbegin(), sut.cend(), pred);
+    auto const removed_count = sut.remove_if(pred);
+    ASSERT_EQ(removed_count, to_remove_count);
+    auto const count_after_remove = std::count_if(sut.cbegin(), sut.cend(), [](auto&&)noexcept{return true;});
+    ASSERT_EQ(count_after_remove, initial_count - to_remove_count);
+}
+
+INSTANTIATE_TEST_CASE_P(RemoveIfTest, SingleLinkedListPredicateParamTest,
+    ::testing::Values(
+        +[](int v)noexcept { return v % 2 == 0; },
+        +[](int v)noexcept { return v % 2 != 0; },
+        +[](int)noexcept { return false; }
+    )
+);
+
+class SingleLinkedListBinaryPredicateParamTest : public ::testing::Test,
+                                          public ::testing::WithParamInterface<bool(*)(int, int)>
+{
+public:
+    static constexpr std::array<int, 11> ints_{1, 1, 2, 2, 2, 3, 3, 3, 4, 5, 5};
+protected:
+    using Node = SLL_Node<int>;
+    SingleLinkedList<int> sut{ints_.cbegin(), ints_.cend()};
+    const std::ptrdiff_t initial_count{std::count_if(sut.cbegin(), sut.cend(), [](auto&&)noexcept{return true;})};
+
+    SingleLinkedListBinaryPredicateParamTest()
+    {
+        EXPECT_EQ(initial_count, ints_.size());
+    }
+};
+
+
+TEST_P(SingleLinkedListBinaryPredicateParamTest, unique_erases_equal_elements)
+{
+    auto const pred{GetParam()};
+    const std::vector<int> expected{[this, pred](){
+        std::vector<int> res{};
+        std::unique_copy(ints_.cbegin(), ints_.cend(), std::back_inserter(res), pred);
+        return res;
+    }()};
+
+    auto const count_removed{sut.unique(pred)};
+    ASSERT_EQ(count_removed, ints_.size() - expected.size());
+    ASSERT_TRUE(std::equal(sut.cbegin(), sut.cend(), expected.cbegin(), expected.cend()));
+}
+
+INSTANTIATE_TEST_CASE_P(UniqueTest, SingleLinkedListBinaryPredicateParamTest,
+    ::testing::Values(
+        +[](int l, int r)noexcept -> bool{ return l == r; },
+        +[](int l, int r)noexcept -> bool{ return l < r; },
+        +[](int l, int r)noexcept -> bool{ return l > r; }
+    )
+);
+
+TEST(SingleLinkedListReverseTest, reverse_inverts_order_of_the_elements)
+{
+    constexpr std::array<int, 5> init{1, 2, 3, 4, 5};
+    std::array<int, 5> expected{init};
+    std::reverse(expected.begin(), expected.end());
+
+    SingleLinkedList<int> sut{init.cbegin(), init.cend()};
+    ASSERT_TRUE(std::equal(init.cbegin(), init.cend(), sut.cbegin(), sut.cend()));
+    sut.reverse();
+    ASSERT_TRUE(std::equal(expected.cbegin(), expected.cend(), sut.cbegin(), sut.cend()));
+}
+
+TEST(SingleLinkedListReverseTest, reverse_for_zero_sized_list_is_noop)
+{
+    SingleLinkedList<int> sut{};
+    ASSERT_TRUE(sut.empty());
+    sut.reverse();
+    ASSERT_TRUE(sut.empty());
+}
+
+TEST(SingleLinkedListReverseTest, reverse_for_one_sized_list_is_noop)
+{
+    SingleLinkedList<int> sut{1};
+    auto const initial_size{std::count_if(sut.cbegin(), sut.cend(), [](auto)noexcept{return true;})};
+    sut.reverse();
+    ASSERT_FALSE(sut.empty());
+    auto const reversed_size{std::count_if(sut.cbegin(), sut.cend(), [](auto)noexcept{return true;})};
+    ASSERT_EQ(initial_size, reversed_size);
+}
+
+struct SingleLinkedListSortParamTest : public ::testing::Test, public ::testing::WithParamInterface<int>
+{
+protected:
+    static std::random_device rd;
+    static std::mt19937 gen;
+    static std::uniform_int_distribution<int> ud;
+};
+
+std::random_device SingleLinkedListSortParamTest::rd{};
+std::mt19937 SingleLinkedListSortParamTest::gen{rd()};
+std::uniform_int_distribution<int> SingleLinkedListSortParamTest::ud;
+
+TEST_P(SingleLinkedListSortParamTest, sort_orders_elements_according_to_predicate)
+{
+    const std::vector<int> init_elems{
+        [this, size=std::as_const(GetParam())](){
+            std::vector<int> res;
+            auto const gen_rand{[this](){ return ud(gen); }};
+            std::generate_n(std::back_inserter(res), size, gen_rand);
+            return res;
+        }()
+    };
+    const auto sorted_elems{
+        [&init_elems = std::as_const(init_elems)](){
+            std::vector<int> res{init_elems};
+            std::sort(res.begin(), res.end());
+            return res;
+        }()
+    };
+
+    SingleLinkedList<int> sut(init_elems.cbegin(), init_elems.cend());
+
+    sut.sort();
+    ASSERT_TRUE(std::equal(sut.cbegin(), sut.cend(), sorted_elems.cbegin(), sorted_elems.cend()));
+}
+
+INSTANTIATE_TEST_CASE_P(SortTest, SingleLinkedListSortParamTest,
+    ::testing::Values(1, 2, 3, 4, 5, 10, 11, 17, 20, 29, 42)
+);
+
+TEST(SingleLinkedListSortTest, sort_basic)
+{
+    std::array<int, 3> elems{3, 1, 12};
+    SingleLinkedList<int> sut{elems.cbegin(), elems.cend()};
+
+    auto const count_elems = [](auto const& c){
+        return std::count_if(c.cbegin(), c.cend(), [](auto)noexcept{return true;});
+    };
+    auto const compare_containers = [](auto const& lhs, auto const& rhs){
+        return std::equal(lhs.cbegin(), lhs.cend(), rhs.cbegin(), rhs.cend());
+    };
+
+    sut.sort();
+    std::sort(elems.begin(), elems.end());
+    ASSERT_EQ(count_elems(sut), count_elems(elems));
+    ASSERT_TRUE(compare_containers(sut, elems));
+}
+
+TEST(SingleLinkedListSortTest, sort_basic_2)
+{
+    std::array<int, 4> elems{3, 1, 12, 2};
+    SingleLinkedList<int> sut{elems.cbegin(), elems.cend()};
+
+    auto const count_elems = [](auto const& c){
+        return std::count_if(c.cbegin(), c.cend(), [](auto)noexcept{return true;});
+    };
+    auto const compare_containers = [](auto const& lhs, auto const& rhs){
+        return std::equal(lhs.cbegin(), lhs.cend(), rhs.cbegin(), rhs.cend());
+    };
+
+    sut.sort();
+    std::sort(elems.begin(), elems.end());
+    ASSERT_EQ(count_elems(sut), count_elems(elems));
+    ASSERT_TRUE(compare_containers(sut, elems));
+}
+
+TEST(SingleLinkedListSortTest, sort_orders_elements_according_to_predicate_empty_list)
+{
+    SingleLinkedList<int> sut{};
+    ASSERT_TRUE(sut.empty());
+    sut.sort();
+    ASSERT_TRUE(sut.empty());
+    sut.sort([](int lhs, int rhs){return lhs > rhs;});
+    ASSERT_TRUE(sut.empty());
+}
+
+TEST(SingleLinkedListSortTest, sort_orders_elements_according_to_predicate_single_elem_list)
+{
+    SingleLinkedList<int> sut{42};
+    auto const count_elems = [](auto const& c){
+        return std::count_if(c.cbegin(), c.cend(), [](auto)noexcept{return true;});
+    };
+    auto const init_size{count_elems(sut)};
+    sut.sort();
+    auto const after_sort_size{count_elems(sut)};
+    ASSERT_EQ(init_size, after_sort_size);
+    sut.sort([](int lhs, int rhs){return lhs > rhs;});
+    auto const after_sort_pred_size{count_elems(sut)};
+    ASSERT_EQ(init_size, after_sort_pred_size);
 }
 
 } // namespace

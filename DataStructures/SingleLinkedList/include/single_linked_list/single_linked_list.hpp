@@ -2,6 +2,7 @@
 #define DATA_STRUCTURES_SINGLE_LINKED_LIST_HPP
 
 #include <utils/Assertion.h>
+#include <utils/traits.h>
 
 #include <cstddef>
 #include <cstdint>
@@ -11,24 +12,6 @@
 #include <memory>
 #include <type_traits>
 #include <utility>
-
-template<typename InputIt>
-using RequiresInputIterator = std::enable_if_t<
-        std::is_convertible_v<typename std::iterator_traits<InputIt>::iterator_category, std::input_iterator_tag>>;
-
-template<typename PropagateOnSwap> struct SwapAllocatorsImpl;
-template<> struct SwapAllocatorsImpl<std::true_type> {
-    template<typename Alloc>
-    void operator()(Alloc& lhs, Alloc& rhs) const noexcept
-    {
-        using std::swap;
-        swap(lhs, rhs);
-    }
-};
-template<> struct SwapAllocatorsImpl<std::false_type> {
-    template<typename Alloc>
-    void operator()(Alloc&, Alloc&) const noexcept {}
-};
 
 template<typename T, bool IsConst> class SLL_IteratorImpl;
 template<typename T> using SLL_Iterator = SLL_IteratorImpl<T, false>;
@@ -63,9 +46,7 @@ private:
     using alloc_traits = std::allocator_traits<Allocator>;
     using Nalloc = typename alloc_traits::template rebind_alloc<Node>;
     using nalloc_traits = std::allocator_traits<Nalloc>;
-    using SwapAllocators = SwapAllocatorsImpl<typename nalloc_traits::propagate_on_container_swap>;
-
-    // template<typename T, bool> friend SLL_IteratorImpl;
+    using SwapAllocators = SwapAllocators<typename nalloc_traits::propagate_on_container_swap>;
 
     Nalloc nalloc_{};
     Node head_{};
@@ -174,7 +155,7 @@ public:
     void reverse() noexcept;
 
     size_type unique();
-    template<typename BinaryPredicate> size_type unique();
+    template<typename BinaryPredicate> size_type unique(BinaryPredicate pred);
 
     void sort();
     template<typename Compare> void sort(Compare cmp);
@@ -297,6 +278,33 @@ SingleLinkedList<T, Allocator>::SingleLinkedList(SingleLinkedList&& other, Alloc
     // Need to move node-by-node, since the allocator is different?
     auto nodes(make_range(std::make_move_iterator(other.begin()), std::make_move_iterator(other.end())));
     link_nodes(&head_, nodes.first);
+}
+
+template<typename T, typename Allocator>
+auto SingleLinkedList<T, Allocator>::operator=(SingleLinkedList const& other) -> SingleLinkedList&
+{
+    if (this != &other) {
+        free();
+        auto nodes{[this, &other]() -> std::pair<Node*, Node*> {
+            if (!other.empty()) {
+                return make_range(other.cbegin(), other.cend());
+            }
+                return {nullptr, nullptr};
+            }()
+        };
+        link_nodes(&head_, nodes.first);
+    }
+    return *this;
+}
+
+template<typename T, typename Allocator>
+auto SingleLinkedList<T, Allocator>::operator=(SingleLinkedList&& other) noexcept -> SingleLinkedList&
+{
+    if (this != &other) {
+        free();
+        head_.next = std::exchange(other.head_.next, nullptr);
+    }
+    return *this;
 }
 
 template<typename T, typename Allocator>
@@ -508,6 +516,105 @@ template<typename Compare> void SingleLinkedList<T, Allocator>::merge(SingleLink
     }
 }
 
+template<typename T, typename Allocator>
+auto SingleLinkedList<T, Allocator>::remove(T const& value) -> size_type
+{
+    return remove_if([&value](auto const& elem) noexcept { return elem == value; });
+}
+template<typename T, typename Allocator>
+template<typename UnaryPredicate>
+auto SingleLinkedList<T, Allocator>::remove_if(UnaryPredicate pred) -> size_type
+{
+    Node* bbegin{&head_};
+    Node* begin{head_.next};
+    size_type count{0};
+    while (begin != nullptr) {
+        if (pred(begin->data)) {
+            bbegin->next = begin->next;
+            free(begin);
+            begin = bbegin->next;
+            ++count;
+        } else {
+            bbegin = begin;
+            begin = begin->next;
+        }
+    }
+    return count;
+}
+
+template<typename T, typename Allocator>
+void SingleLinkedList<T, Allocator>::reverse() noexcept
+{
+    Node* begin{head_.next};
+    head_.next = nullptr;
+    while (begin != nullptr)
+    {
+        auto next = begin->next;
+        begin->next = head_.next;
+        head_.next = begin;
+        begin = next;
+    }
+    
+}
+
+template<typename T, typename Allocator>
+auto SingleLinkedList<T, Allocator>::unique() -> size_type
+{
+    return unique([](auto const& lhs, auto const& rhs)noexcept{return lhs == rhs;});
+}
+
+template<typename T, typename Allocator>
+template<typename BinaryPredicate>
+auto SingleLinkedList<T, Allocator>::unique(BinaryPredicate pred) -> size_type
+{
+    auto begin{head_.next};
+    size_type count{0};
+    while (begin != nullptr && begin->next != nullptr) {
+        auto next = begin->next;
+        while (next != nullptr && pred(begin->data, next->data)) {
+            begin->next = next->next;
+            free(next);
+            next = begin->next;
+            ++count;
+        }
+        begin = next;
+    }
+    return count;
+}
+
+template<typename T, typename Allocator>
+void SingleLinkedList<T, Allocator>::sort()
+{
+    sort([](auto const& lhs, auto const& rhs)noexcept { return lhs < rhs; });
+}
+template<typename T, typename Allocator>
+template<typename Compare>
+void SingleLinkedList<T, Allocator>::sort(Compare cmp)
+{
+    auto const swap_nodes = [](Node* blhs, Node* lhs, Node* rhs) noexcept {
+        blhs->next = rhs;
+        lhs->next = rhs->next;
+        rhs->next = lhs;
+    };
+
+    if (head_.next == nullptr) return;
+
+    bool sorted{false};
+    while (!sorted) {
+        sorted = true;
+        Node* blhs{&head_};
+        Node* lhs{head_.next};
+        while (lhs->next != nullptr) {
+            if (cmp(lhs->next->data, lhs->data)) {
+                swap_nodes(blhs, lhs, lhs->next);
+                sorted = false;
+            } else {
+                lhs = lhs->next;
+            }
+            blhs = blhs->next;
+        }
+    }
+}
 
 // Iterators
 template<typename T, bool IsConst> class SLL_IteratorImpl
