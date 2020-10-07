@@ -158,9 +158,15 @@ public:
     size_type erase(key_type const& key);
 
     // lookup
-    size_type count(Key const& key);
-    template<typename K>
-    size_type count(K const& key);
+    size_type count(Key const& key)
+    {
+        return count_impl(key);
+    }
+    template<typename K, typename = std::enable_if_t<std::is_convertible_v<K, key_type>>>
+    size_type count(K const& key)
+    {
+        return count_impl(key);
+    }
 
     iterator find(key_type const& key) noexcept;
     const_iterator find(key_type const& key) const noexcept;
@@ -234,7 +240,19 @@ private:
 
     std::pair<iterator, bool> insert_node(Node* node);
 
+    template<typename K>
+    size_type count_impl(K const& key)
+    {
+        size_type count{0};
+        traverse_preorder_recursive(root_, [&count, &key](Node* n){
+                if (n->data.first == key) { ++count; }
+            }
+        );
+        return count;
+    }
+
     static std::pair<Node**, Node*> find_node_with_link(Node* root, key_type const& key) noexcept;
+    std::pair<Node**, Node*> find_node_with_link(key_type const& key) noexcept;
 
     static std::pair<Node*, bool> insert_at(Node* root, Node* n) noexcept
     {
@@ -262,6 +280,10 @@ private:
             return {nullptr, false};
         }
     }
+
+    iterator erase_leaf(Node** link, Node* node);
+    iterator erase_semibranch(Node** link, Node* node);
+    iterator erase_branch(Node** link, Node* node);
 
     template<typename KeyType, typename ValueType>
     std::pair<Node*, bool> insert_or_assign_impl(Node* root, KeyType&& key, ValueType&& value)
@@ -470,18 +492,31 @@ auto BinaryTree<Key, T, Allocator>::find_node_with_link(Node* root, key_type con
     return {link, node};
 }
 
+
+template <typename Key, typename T, typename Allocator>
+auto BinaryTree<Key, T, Allocator>::find_node_with_link(key_type const& key) noexcept -> std::pair<Node**, Node*>
+{
+    Node* node{root_};
+    Node** link{&root_};
+    while (node != nullptr) {
+        if (node->data.first < key) {
+            link = &node->right;
+            node = node->right;
+        }
+        else if (key < node->data.first) {
+            link = &node->left;
+            node = node->left;
+        }
+        else break;
+    }
+    return {link, node};
+}
+
 template <typename Key, typename T, typename Allocator>
 auto BinaryTree<Key, T, Allocator>::insert_node(Node* node) -> std::pair<iterator, bool>
 {
     auto node_inserted{insert_at(root_, node)};
     if (node_inserted.second) {
-        // iterator it{root_};
-        // auto key = node->data.first;
-        // while (it != end() && it->first != key) {
-        //     ++it;
-        // }
-        // JAM_ENSURE(it != end(), "node insertion failed");
-        // return {it, node_inserted.second};
         return {iterator{root_, node->data.first}, node_inserted.second};
     }
     else {
@@ -593,6 +628,259 @@ auto BinaryTree<Key, T, Allocator>::try_emplace(const_iterator hint, key_type&& 
 {
     auto node_emplaced{try_emplace_impl(hint.current, std::move(key), std::forward<Args>(args)...)};
     return {iterator{root_, node_emplaced.first->data.first}, node_emplaced.second};
+}
+
+template <typename Key, typename T, typename Allocator>
+auto BinaryTree<Key, T, Allocator>::erase_leaf(Node** link, Node* node) -> iterator
+{
+    // erase leaf
+    *link = nullptr;
+    free(node);
+    return iterator{};
+}
+
+template <typename Key, typename T, typename Allocator>
+auto BinaryTree<Key, T, Allocator>::erase_semibranch(Node** link, Node* node) -> iterator
+{
+    // whichever link is not null, is the correct child
+    Node* const new_child = [to_erase=node]() {
+        if (to_erase->left != nullptr) {
+            Node* const child{to_erase->left};
+            to_erase->left = nullptr;
+            return child;
+        }
+        else {
+            Node* const child{to_erase->right};
+            to_erase->right = nullptr;
+            return child;
+        }
+    }();
+
+    *link = new_child;
+    free(node);
+    return iterator{root_, new_child->data.first};
+}
+
+template <typename Key, typename T, typename Allocator>
+auto BinaryTree<Key, T, Allocator>::erase_branch(Node** link, Node* node) -> iterator
+{
+    // find smallest node following the right link (the appropriate parent for the left link node)
+    Node* const successor = [cur=node->right]() mutable {
+        auto* pred{cur};
+        while (cur->left != nullptr) {
+            pred = cur;
+            cur = cur->left;
+        }
+        if (pred != cur) { pred->left = cur->right; }
+        return cur;
+    }();
+
+    // left successor link needs to point at the node the erase target points at
+    successor->left = node->left;
+    // point the right successor link at the right erase target link, but only if
+    // successor is not the node on the right of the erase target - this would cause the right successor
+    // link to point at the successor (circular)
+    if (successor != node->right) {
+        successor->right = node->right;
+    }
+    *link = successor;
+    free(node);
+    return iterator{root_, successor->data.first};
+}
+
+
+template <typename Key, typename T, typename Allocator>
+auto BinaryTree<Key, T, Allocator>::erase(const_iterator pos) -> iterator
+{
+    auto link_node{find_node_with_link(pos->first)};
+    if (link_node.second != nullptr) {
+        if (link_node.second->left != nullptr && link_node.second->right != nullptr) {
+            return erase_branch(link_node.first, link_node.second);
+        }
+        else if (link_node.second->left != nullptr || link_node.second->right != nullptr) {
+            return erase_semibranch(link_node.first, link_node.second);
+        }
+        else {
+            return erase_leaf(link_node.first, link_node.second);
+        }
+    }
+    else { return iterator{}; }
+}
+
+template <typename Key, typename T, typename Allocator>
+auto BinaryTree<Key, T, Allocator>::erase(iterator pos) -> iterator
+{
+    return erase(const_iterator{pos});
+}
+
+template <typename Key, typename T, typename Allocator>
+auto BinaryTree<Key, T, Allocator>::erase(const_iterator first, const_iterator last) -> iterator
+{
+    iterator it;
+    while (first != last) {
+        it = erase(first->first);
+    }
+    return it;
+}
+
+template <typename Key, typename T, typename Allocator>
+auto BinaryTree<Key, T, Allocator>::erase(key_type const& key) -> size_type
+{
+    auto link_node{find_node_with_link(key)};
+    if (link_node.second != nullptr) {
+        if (link_node.second->left != nullptr && link_node.second->right != nullptr) {
+            erase_branch(link_node.first, link_node.second);
+            return 1u;
+        }
+        else if (link_node.second->left != nullptr || link_node.second->right != nullptr) {
+            erase_semibranch(link_node.first, link_node.second);
+            return 1u;
+        }
+        else {
+            erase_leaf(link_node.first, link_node.second);
+            return 1u;
+        }
+    }
+    else { return 0u; }
+}
+
+template <typename Key, typename T, typename Allocator>
+auto BinaryTree<Key, T, Allocator>::find(key_type const& key) noexcept -> iterator
+{
+    // If we had an implementation that allowed for O(1) iterators this would be ideal implementation:
+    // Node* node{root_};
+    // while (node != nullptr && node->data.first != key) {
+    //     if (node->data.first < key) { node = node->right; }
+    //     else if (key < node->data.first) { node = node->left; }
+    // }
+    // return iterator{node};
+
+    // But with the current implementation we can't do better than this:
+    return iterator{root_, key};
+}
+
+template <typename Key, typename T, typename Allocator>
+auto BinaryTree<Key, T, Allocator>::find(key_type const& key) const noexcept -> const_iterator
+{
+    return const_iterator{root_, key};
+}
+
+template <typename Key, typename T, typename Allocator>
+template<typename K> auto BinaryTree<Key, T, Allocator>::find(K const& key) noexcept -> iterator
+{
+    return iterator{root_, key};
+}
+
+template <typename Key, typename T, typename Allocator>
+template<typename K> auto BinaryTree<Key, T, Allocator>::find(K const& key) const noexcept -> const_iterator
+{
+    return const_iterator{root_, key};
+}
+
+template <typename Key, typename T, typename Allocator>
+bool BinaryTree<Key, T, Allocator>::contains(Key const& key) const noexcept
+{
+    Node* node{root_};
+    while (node != nullptr && node->data.first != key) {
+        if (node->data.first < key) { node = node->right; }
+        else if (key < node->data.first) { node = node->left; }
+    }
+    return node != nullptr;
+}
+
+template <typename Key, typename T, typename Allocator>
+template<typename K>
+bool BinaryTree<Key, T, Allocator>::contains(K const& key) const noexcept
+{
+    Node* node{root_};
+    while (node != nullptr && node->data.first != key) {
+        if (node->data.first < key) { node = node->right; }
+        else if (key < node->data.first) { node = node->left; }
+    }
+    return node != nullptr;
+}
+
+template <typename Key, typename T, typename Allocator>
+auto BinaryTree<Key, T, Allocator>::equal_range(Key const& key) noexcept -> std::pair<iterator, iterator>
+{
+    Node* node{root_};
+    while (node != nullptr && node->data.first != key) {
+        if (node->data.first < key) { node = node->right; }
+        else if (key < node->data.first) { node = node->left; }
+    }
+    return node != nullptr;
+}
+
+template <typename Key, typename T, typename Allocator>
+auto BinaryTree<Key, T, Allocator>::equal_range(Key const& key) const noexcept -> std::pair<const_iterator, const_iterator>
+{
+    return {const_iterator{root_, key}, std::next(const_iterator{root_, key})};
+}
+
+template <typename Key, typename T, typename Allocator>
+template<typename K>
+auto BinaryTree<Key, T, Allocator>::equal_range(K const& key) noexcept -> std::pair<iterator, iterator>
+{
+    return {iterator{root_, key}, std::next(iterator{root_, key})};
+}
+
+template <typename Key, typename T, typename Allocator>
+template<typename K>
+auto BinaryTree<Key, T, Allocator>::equal_range(K const& key) const noexcept -> std::pair<const_iterator, const_iterator>
+{
+    return {const_iterator{root_, key}, std::next(const_iterator{root_, key})};
+}
+
+template <typename Key, typename T, typename Allocator>
+auto BinaryTree<Key, T, Allocator>::lower_bound(Key const& key) noexcept -> iterator
+{
+    return {iterator{root_, key}, std::next(iterator{root_, key})};
+}
+
+template <typename Key, typename T, typename Allocator>
+auto BinaryTree<Key, T, Allocator>::lower_bound(Key const& key) const noexcept -> const_iterator
+{
+    return const_iterator{root_, key};
+}
+
+template <typename Key, typename T, typename Allocator>
+template<typename K>
+auto BinaryTree<Key, T, Allocator>::lower_bound(K const& key) noexcept -> iterator
+{
+    return iterator{root_, key};
+}
+
+template <typename Key, typename T, typename Allocator>
+template<typename K>
+auto BinaryTree<Key, T, Allocator>::lower_bound(K const& key) const noexcept -> const_iterator
+{
+    return const_iterator{root_, key};
+}
+
+template <typename Key, typename T, typename Allocator>
+auto BinaryTree<Key, T, Allocator>::upper_bound(Key const& key) noexcept -> iterator
+{
+    return std::next(iterator{root_, key});
+}
+
+template <typename Key, typename T, typename Allocator>
+auto BinaryTree<Key, T, Allocator>::upper_bound(Key const& key) const noexcept -> const_iterator
+{
+    return std::next(const_iterator{root_, key});
+}
+
+template <typename Key, typename T, typename Allocator>
+template<typename K>
+auto BinaryTree<Key, T, Allocator>::upper_bound(K const& key) noexcept -> iterator
+{
+    return std::next(iterator{root_, key});
+}
+
+template <typename Key, typename T, typename Allocator>
+template<typename K>
+auto BinaryTree<Key, T, Allocator>::upper_bound(K const& key) const noexcept -> const_iterator
+{
+    return std::next(const_iterator{root_, key});
 }
 
 
@@ -756,7 +1044,7 @@ public:
     //     }
 
     explicit BinaryTree_iterator(Node* first, key_type const& key)
-        : base{first}
+        : BinaryTree_iterator{first}
     {
         while(this->current && this->current->data.first != key)
             ++*this;
@@ -821,8 +1109,9 @@ public:
     //     }
 
     explicit BinaryTree_iterator(Node* first, key_type const& key)
-        : base{first}
+        : BinaryTree_iterator{first}
     {
+        traverse_maximum();
         while(this->current && this->current->data.first != key)
             ++*this;
     }
