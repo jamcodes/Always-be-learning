@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <cmath>
 #include <iterator>
 #include <memory>
 #include <type_traits>
@@ -27,12 +28,14 @@ class HashMap {
     using self = HashMap<Key, T, Hash, Allocator>;
 
     static constexpr std::size_t Default_Bucket_Count{17};
+    static constexpr float Default_Max_Load_Factor{1.0f};
 
     BucketAlloc alloc_{};
     Hash hash_{};
     std::size_t size_{Default_Bucket_Count};
     Bucket* buckets_;
     std::size_t count_{0};
+    float max_load_factor_{Default_Max_Load_Factor};
 public:
     using key_type = Key;
     using mapped_type = T;
@@ -67,13 +70,7 @@ public:
                      Hash const& hash = Hash{}, Allocator const& alloc = Allocator{})
         : HashMap{bucket_count, hash, alloc}
     {
-        // while (first != last) {
-        //     auto bucket = get_bucket(first->first);
-        //     bucket->push_front(*first);
-        //     ++first;
-        //     ++count_;
-        // }
-        count_ = fill_buckets(first, last);
+        count_ = safe_fill_buckets(first, last);
     }
 
     HashMap(HashMap const& other)
@@ -82,11 +79,6 @@ public:
           size_{other.size_},
           buckets_{make_buckets(size_)}
     {
-        // for (auto b{other.cbegin()}; b != other.cend(); ++b) {
-        //     auto bucket = get_bucket(b->first);
-        //     bucket->push_front(*b);
-        //     ++count_;
-        // }
         count_ = fill_buckets(other.cbegin(), other.cend());
         JAM_ENSURE(count_ == other.count_, "Copy construction - failed to copy all elements");
     }
@@ -151,11 +143,23 @@ public:
         return *this;
     }
 
+    void swap(HashMap& other) noexcept
+    {
+        using std::swap;
+        if (BucketAllocTraits::propagate_on_container_swap) {
+            swap(alloc_, other.alloc_);
+        }
+        swap(hash_, other.hash_);
+        swap(size_, other.size_);
+        swap(buckets_, other.buckets_);
+        swap(count_, other.count_);
+    }
+
     // allocator access
     allocator_type get_allocator() const noexcept { return alloc_; }
 
     // iterators
-    iterator begin() noexcept { iterator{buckets_, buckets_ + size_}; }
+    iterator begin() noexcept { return iterator{buckets_, buckets_ + size_}; }
     const_iterator begin() const noexcept { return const_iterator{buckets_, buckets_ + size_}; }
     const_iterator cbegin() const noexcept { return const_iterator{buckets_, buckets_ + size_}; }
 
@@ -193,22 +197,22 @@ public:
     template<typename... Args>
     std::pair<iterator, bool> emplace_hint(const_iterator hint, Args&&... args);
 
-    template<typename... Args typename = std::enable_if_t<std::is_constructible_v<value_type, Args&&...>>>
+
+    // TODO: figure out correct SFINAE here
+    template<typename... Args, typename = std::enable_if_t<true>>
     std::pair<iterator, bool> try_emplace(key_type const&, Args&&... value);
-    template<typename... Args typename = std::enable_if_t<std::is_constructible_v<value_type, Args&&...>>>
+    template<typename... Args, typename = std::enable_if_t<true>>
     std::pair<iterator, bool> try_emplace(key_type&&, Args&&... value);
 
     // TODO: implement hinted operations
-    template<typename... Args typename = std::enable_if_t<std::is_constructible_v<value_type, Args&&...>>>
+    template<typename... Args, typename = std::enable_if_t<true>>
     iterator try_emplace(const_iterator hint, key_type const&, Args&&... value);
-    template<typename... Args typename = std::enable_if_t<std::is_constructible_v<value_type, Args&&...>>>
+    template<typename... Args, typename = std::enable_if_t<true>>
     iterator try_emplace(const_iterator hint, key_type&&, Args&&... value);
 
     iterator erase(const_iterator pos);
     iterator erase(const_iterator first, const_iterator last);
     size_type erase(key_type const& key);
-
-    void swap(HashMap& other) noexcept;
 
     // lookup
     reference at(Key const&);
@@ -216,7 +220,7 @@ public:
     reference operator[](Key const&);
     reference operator[](Key&&);
 
-    size_type count(Key const&) const noexcept;
+    size_type count(Key const&) const noexcept { return count_; }
 
     iterator find(Key const&) noexcept;
     const_iterator find(Key const&) const noexcept;
@@ -225,16 +229,19 @@ public:
     std::pair<const_iterator, const_iterator> equal_range(Key const&) const;
 
     // bucket interface
-    local_iterator begin(size_type n);
-    const_local_iterator begin(size_type n) const;
-    const_local_iterator cbegin(size_type n) const;
-    local_iterator end(size_type n);
-    const_local_iterator end(size_type n) const;
-    const_local_iterator cend(size_type n) const;
+    local_iterator begin(size_type n) { return buckets_[n].begin(); }
+    const_local_iterator begin(size_type n) const { return buckets_[n].begin(); }
+    const_local_iterator cbegin(size_type n) const { return buckets_[n].cbegin(); }
+    local_iterator end(size_type n) { return buckets_[n].end(); }
+    const_local_iterator end(size_type n) const { return buckets_[n].end(); }
+    const_local_iterator cend(size_type n) const { return buckets_[n].cend(); }
 
-    size_type bucket_count() const noexcept;
-    size_type bucket_size(size_type n) const;
-    size_type bucket(Key const& k) const noexcept;
+    size_type bucket_count() const noexcept { return size_; }
+    size_type bucket_size(size_type n) const { return buckets_[n].size(); }
+    size_type bucket(Key const& k) const noexcept {
+        auto bucket{get_bucket(k)};
+        return bucket->size();
+    }
 
     // hash policy
     float load_factor() const noexcept;
@@ -273,8 +280,21 @@ protected:
         return count;
     }
 
-    template<typename Key, typename... Args> inline
-    std::enable_if_t<std::is_convertible_v<Key&&, key_type>, buckets_iterator> get_bucket(Key&& key, Args&&... args)
+    template<typename InputIt>
+    size_type safe_fill_buckets(InputIt first, InputIt last)
+    {
+        size_type count{0};
+        while (first != last) {
+            auto bucket{get_bucket(first->first)};
+            bucket->insert_unique(*first);
+            ++first;
+            ++count;
+        }
+        return count;
+    }
+
+    template<typename K, typename... Args> inline
+    std::enable_if_t<std::is_convertible_v<K&&, key_type>, buckets_iterator> get_bucket(K&& key, Args&&...)
     {
         auto bucket{bbegin()};
         std::advance(bucket, bucket_index(key));
@@ -291,7 +311,6 @@ protected:
         auto bucket{bbegin()};
         std::advance(bucket, bucket_index(key));
         return bucket;
-        // return std::next(bbegin(), bucket_index(key));
     }
 
     inline const_buckets_iterator get_bucket(key_type const& key) const noexcept
@@ -299,8 +318,10 @@ protected:
         auto bucket{bbegin()};
         std::advance(bucket, bucket_index(key));
         return bucket;
-        // return std::next(bbegin(), bucket_index(key));
     }
+
+    template<typename Object>
+    static auto at_impl(Object& o, key_type const& key) -> decltype(o.at(key));
 
     void free() noexcept
     {
@@ -316,11 +337,12 @@ protected:
 
 
 template <typename Key, typename T, typename Hash, typename Allocator>
-auto HashMap<Key, T, Hash, Allocator>::insert(const value_type& value) -> std::pair<iterator, bool>
+auto HashMap<Key, T, Hash, Allocator>::insert(value_type const& value) -> std::pair<iterator, bool>
 {
     auto bucket{get_bucket(value.first)};
     auto res{bucket->insert_unique(value)};
-    return {iterator{bucket, bend(), res.first}};
+    if (res.second) { ++count_; }
+    return {iterator{bucket, bend(), res.first}, res.second};
 }
 
 template <typename Key, typename T, typename Hash, typename Allocator>
@@ -328,6 +350,7 @@ auto HashMap<Key, T, Hash, Allocator>::insert(value_type&& value) -> std::pair<i
 {
     auto bucket{get_bucket(value.first)};
     auto res{bucket->insert_unique(std::move(value))};
+    if (res.second) { ++count_; }
     return {iterator{bucket, bend(), res.first}, res.second};
 }
 
@@ -337,24 +360,27 @@ auto HashMap<Key, T, Hash, Allocator>::insert(P&& value) -> std::pair<iterator, 
 {
     auto bucket{get_bucket(value.first)};
     auto res{bucket->insert_unique(std::forward<P>(value))};
+    if (res.second) { ++count_; }
     return {iterator{bucket, bend(), res.first}, res.second};
 }
 
 template <typename Key, typename T, typename Hash, typename Allocator>
-template<typename M, typename = std::enable_if_t<std::is_convertible_v<M&&, mapped_type>>>
+template<typename M, typename>
 auto HashMap<Key, T, Hash, Allocator>::insert_or_assign(key_type const& key, M&& value) -> std::pair<iterator, bool>
 {
     auto bucket{get_bucket(key)};
     auto res{bucket->insert_or_assign(key, std::forward<M>(value))};
+    if (res.second) { ++count_; }
     return {iterator{bucket, bend(), res.first}, res.second};
 }
 
 template <typename Key, typename T, typename Hash, typename Allocator>
-template<typename M, typename = std::enable_if_t<std::is_convertible_v<M&&, mapped_type>>>
+template<typename M, typename>
 auto HashMap<Key, T, Hash, Allocator>::insert_or_assign(key_type&& key, M&& value) -> std::pair<iterator, bool>
 {
     auto bucket{get_bucket(key)};
     auto res{bucket->insert_or_assign(std::move(key), std::forward<M>(value))};
+    if (res.second) { ++count_; }
     return {iterator{bucket, bend(), res.first}, res.second};
 }
 
@@ -364,27 +390,210 @@ auto HashMap<Key, T, Hash, Allocator>::emplace(Args&&... args) -> std::pair<iter
 {
     auto bucket{get_bucket(args...)};
     auto res{bucket->emplace_unique(std::forward<Args>(args)...)};
+    if (res.second) { ++count_; }
     return {iterator{bucket, bend(), res.first}, res.second};
 }
 
 template <typename Key, typename T, typename Hash, typename Allocator>
-template<typename... Args typename = std::enable_if_t<std::is_constructible_v<value_type, Args&&...>>>
-auto HashMap<Key, T, Hash, Allocator>::try_emplace(key_type const& key, Args&&... value) -> std::pair<iterator, bool>
+template<typename... Args, typename>
+auto HashMap<Key, T, Hash, Allocator>::try_emplace(key_type const& key, Args&&... args) -> std::pair<iterator, bool>
 {
     auto bucket{get_bucket(key)};
     auto res{bucket->try_emplace(key, std::forward<Args>(args)...)};
+    if (res.second) { ++count_; }
     return {iterator{bucket, bend(), res.first}, res.second};
 }
 
 template <typename Key, typename T, typename Hash, typename Allocator>
-template<typename... Args typename = std::enable_if_t<std::is_constructible_v<value_type, Args&&...>>>
-auto HashMap<Key, T, Hash, Allocator>::try_emplace(key_type&& key, Args&&... value) -> std::pair<iterator, bool>
+template<typename... Args, typename>
+auto HashMap<Key, T, Hash, Allocator>::try_emplace(key_type&& key, Args&&... args) -> std::pair<iterator, bool>
 {
     auto bucket{get_bucket(key)};
     auto res{bucket->try_emplace(std::move(key), std::forward<Args>(args)...)};
+    if (res.second) { ++count_; }
     return {iterator{bucket, bend(), res.first}, res.second};
 }
 
+template <typename Key, typename T, typename Hash, typename Allocator>
+auto HashMap<Key, T, Hash, Allocator>::erase(const_iterator pos) -> iterator
+{
+    auto bucket{pos.bucket_};
+    auto const end{pos.end_bucket_};
+    auto res{bucket->erase(pos.node_)};
+    --count_;
+    return iterator{bucket, end, res};
+}
+
+template <typename Key, typename T, typename Hash, typename Allocator>
+auto HashMap<Key, T, Hash, Allocator>::erase(const_iterator first, const_iterator last) -> iterator
+{
+    while (first != last) {
+        erase(first);
+        ++first;
+        --count_;
+    }
+    return iterator{last.bucket_, last.end_bucket_, last.node_};
+}
+
+template <typename Key, typename T, typename Hash, typename Allocator>
+auto HashMap<Key, T, Hash, Allocator>::erase(key_type const& key) -> size_type
+{
+    auto bucket{get_bucket(key)};
+    auto erased_count{bucket->erase(key)};
+    count_ -= erased_count;
+    return erased_count;
+}
+
+template <typename Key, typename T, typename Hash, typename Allocator>
+auto HashMap<Key, T, Hash, Allocator>::at(Key const& key) -> reference
+{
+    // auto bucket{get_bucket(key)};
+    // auto it{std::find_if(bucket->begin(), bucket->end(),
+    //     [&key](auto const& e){return e.first == key;})
+    // };
+    // if (it != bucket->end()) { return *it; }
+    // else { throw std::runtime_error{"HashMap: key not found"}; }
+    return at_impl(*this, key);
+}
+
+template <typename Key, typename T, typename Hash, typename Allocator>
+auto HashMap<Key, T, Hash, Allocator>::at(Key const& key) const -> const_reference
+{
+    // auto bucket{get_bucket(key)};
+    // auto it{std::find_if(bucket->begin(), bucket->end(),
+    //     [&key](auto const& e){return e.first == key;})
+    // };
+    // if (it != bucket->end()) { return *it; }
+    // else { throw std::runtime_error{"HashMap: key not found"}; }
+    return at_impl(*this, key);
+}
+
+template <typename Key, typename T, typename Hash, typename Allocator>
+template<typename Object>
+auto HashMap<Key, T, Hash, Allocator>::at_impl(Object& self, Key const& key) -> decltype(self.at(key))
+{
+    auto bucket{self.get_bucket(key)};
+    auto it{std::find_if(bucket->begin(), bucket->end(),
+        [&key](auto const& e){return e.first == key;})
+    };
+    if (it != bucket->end()) { return *it; }
+    else { throw std::out_of_range{"HashMap: key not found"}; }
+}
+
+template <typename Key, typename T, typename Hash, typename Allocator>
+auto HashMap<Key, T, Hash, Allocator>::operator[](Key const& key) -> reference
+{
+    auto bucket{get_bucket(key)};
+    auto it{std::find_if(bucket->begin(), bucket->end(),
+        [&key](auto const& e)noexcept{return e.first == key;})
+    };
+    if (it != bucket->end()) { return *it; }
+    else {
+        bucket->push_front({key, mapped_type{}});
+        return *bucket->begin();
+    };
+}
+
+template <typename Key, typename T, typename Hash, typename Allocator>
+auto HashMap<Key, T, Hash, Allocator>::operator[](Key&& key) -> reference
+{
+    auto bucket{get_bucket(key)};
+    auto it{std::find_if(bucket->begin(), bucket->end(),
+        [&key](auto const& e)noexcept{return e.first == key;})
+    };
+    if (it != bucket->end()) { return *it; }
+    else {
+        bucket->emplace_front(std::move(key), mapped_type{});
+        return *bucket->begin();
+    };
+}
+
+template <typename Key, typename T, typename Hash, typename Allocator>
+auto HashMap<Key, T, Hash, Allocator>::find(Key const& key) noexcept -> iterator
+{
+    auto bucket{get_bucket(key)};
+    auto const bucket_it{bucket->find(key)};
+    if (bucket_it != bucket->end()) { return iterator{bucket, bend(), bucket_it}; }
+    else { return end(); }
+}
+
+template <typename Key, typename T, typename Hash, typename Allocator>
+auto HashMap<Key, T, Hash, Allocator>::find(Key const& key) const noexcept -> const_iterator
+{
+    auto bucket{get_bucket(key)};
+    auto const bucket_it{bucket->find(key)};
+    if (bucket_it != bucket->cend()) { return iterator{bucket, bcend(), bucket_it}; }
+    else { return cend(); }
+}
+
+template <typename Key, typename T, typename Hash, typename Allocator>
+auto HashMap<Key, T, Hash, Allocator>::equal_range(Key const& key) -> std::pair<iterator, iterator>
+{
+    auto bucket{get_bucket(key)};
+    auto const bucket_it{bucket->find(key)};
+    if (bucket_it != bucket->end()) {
+        auto range_end = bucket_it;
+        while (range_end != bucket->end() && range_end->first == key) { ++range_end; }
+        return {iterator{bucket, bend(), bucket_it}, iterator{bucket, bend(), range_end}};
+    }
+    else { return {end(), end()}; }
+}
+
+template <typename Key, typename T, typename Hash, typename Allocator>
+auto HashMap<Key, T, Hash, Allocator>::equal_range(Key const& key) const -> std::pair<const_iterator, const_iterator>
+{
+    auto bucket{get_bucket(key)};
+    auto const bucket_it{bucket->find(key)};
+    if (bucket_it != bucket->cend()) {
+        auto range_end = bucket_it;
+        while (range_end != bucket->end() && range_end->first == key) { ++range_end; }
+        return {iterator{bucket, bcend(), bucket_it}, iterator{bucket, bcend(), range_end}};
+    }
+    else { return {cend(), cend()}; }
+}
+
+template <typename Key, typename T, typename Hash, typename Allocator>
+float HashMap<Key, T, Hash, Allocator>::load_factor() const noexcept
+{
+    size_type total{0};
+    for (auto b{bcbegin()}; b != bcend(); ++b) {
+        total += b->size();
+    }
+    return static_cast<float>(total) / static_cast<float>(size_);
+}
+
+template <typename Key, typename T, typename Hash, typename Allocator>
+float HashMap<Key, T, Hash, Allocator>::max_load_factor() const noexcept
+{
+    return max_load_factor_;
+}
+
+template <typename Key, typename T, typename Hash, typename Allocator>
+void HashMap<Key, T, Hash, Allocator>::max_load_factor(float ml) noexcept
+{
+    max_load_factor_ = ml;
+}
+
+template <typename Key, typename T, typename Hash, typename Allocator>
+void HashMap<Key, T, Hash, Allocator>::rehash(size_type count)
+{
+    auto const new_bucket_index = [this, count](key_type const& key) noexcept { return hash_(key) % count; };
+    std::unique_ptr<Bucket> new_buckets{make_buckets(count)};
+    using std::swap;
+    for (auto b{begin()}; b != end(); ++b) {
+        auto const i{new_bucket_index(b->first)};
+        new_buckets.get()[i].push_front(std::move(*b));
+    }
+    free();
+    buckets_ = new_buckets.release();
+    size_ = count;
+}
+
+template <typename Key, typename T, typename Hash, typename Allocator>
+void HashMap<Key, T, Hash, Allocator>::reserve(size_type count)
+{
+    rehash(std::ceil(count / max_load_factor()));
+}
 
 template <typename BucketType, typename Reference>
 class HashMapIterator
@@ -393,6 +602,7 @@ class HashMapIterator
     using CvValue = std::remove_reference_t<Reference>;
     using BucketIterator = std::conditional_t<
                             std::is_const_v<CvValue>, typename Bucket::const_iterator, typename Bucket::iterator>;
+    template<typename K, typename T, typename H, typename A> friend class HashMap;
     using Self = HashMapIterator;
 
     Bucket* bucket_;
@@ -428,6 +638,19 @@ public:
         }
     }
 
+    template<typename R2, typename = std::enable_if_t<std::conjunction_v<
+        std::negation<std::is_const<CvValue>>, std::is_const<std::remove_reference_t<R2>>>>
+    >
+    HashMapIterator(HashMapIterator<BucketType, R2> const& other) noexcept
+        : bucket_{other.bucket_}, end_bucket_{other.end_bucket_}, node_{other.node_}
+    {
+    }
+
+    HashMapIterator(HashMapIterator const&) = default;
+    HashMapIterator(HashMapIterator&&) noexcept = default;
+    HashMapIterator& operator=(HashMapIterator const&) = default;
+    HashMapIterator& operator=(HashMapIterator&&) = default;
+
     reference operator*() const noexcept { return *node_; }
     pointer operator->() const noexcept { return &(this->operator*()); }
 
@@ -444,8 +667,6 @@ public:
         this->operator++();
         return result;
     }
-
-    operator const_iterator() const noexcept { return const_iterator{*this}; }
 
     template<typename B1, typename R1, typename B2, typename R2>
     friend bool operator==(HashMapIterator<B1, R1> const& lhs, HashMapIterator<B2, R2> const& rhs) noexcept;

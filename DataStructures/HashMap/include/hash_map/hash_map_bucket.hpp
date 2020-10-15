@@ -174,8 +174,18 @@ public:
         }
     }
 
-    template<typename Key, typename... Args>
-    iterator find_iter(Key&& key, Args&&... args) const noexcept
+    iterator find(key_type const& key) noexcept
+    {
+        return std::find_if(begin(), end(), [&key](auto const& v)noexcept { return v.first == key; });
+    }
+
+    const_iterator find(key_type const& key) const noexcept
+    {
+        return std::find_if(cbegin(), cend(), [&key](auto const& v)noexcept { return v.first == key; });
+    }
+
+    template<typename K, typename... Args>
+    iterator find_iter(K&& key, Args&&... args) const noexcept
     {
         return std::find_if(begin(), end(), [&key](auto const& v)noexcept { return v.first == key; });
     }
@@ -191,11 +201,11 @@ public:
         }
     }
 
-    template<typename M, typename = std::enalbe_if_t<std::is_convertible_v<M&&, mapped_type>>>
+    template<typename M, typename = std::enable_if_t<std::is_convertible_v<M&&, mapped_type>>>
     std::pair<iterator, bool> insert_or_assign(key_type const& key, M&& value)
     {
         auto const it{std::find_if(begin(), end(),
-            [&key=value.first](auto const& v)noexcept { return v.first == key; })
+            [&key=key](auto const& v)noexcept { return v.first == key; })
         };
         if (it != end()) {
             it->second = std::forward<M>(value);
@@ -207,11 +217,11 @@ public:
         }
     }
 
-    template<typename M, typename = std::enalbe_if_t<std::is_convertible_v<M&&, mapped_type>>>
+    template<typename M, typename = std::enable_if_t<std::is_convertible_v<M&&, mapped_type>>>
     std::pair<iterator, bool> insert_or_assign(key_type&& key, M&& value)
     {
         auto const it{std::find_if(begin(), end(),
-            [&key=value.first](auto const& v)noexcept { return v.first == key; })
+            [&key=key](auto const& v)noexcept { return v.first == key; })
         };
         if (it != end()) {
             it->second = std::forward<M>(value);
@@ -219,6 +229,36 @@ public:
         }
         else {
             push_front({std::move(key), std::forward<M>(value)});
+            return {begin(), true};
+        }
+    }
+
+    template<typename... Args>
+    std::pair<iterator, bool> try_emplace(key_type const& key, Args&&... args)
+    {
+        auto const it{std::find_if(begin(), end(),
+            [&key=key](auto const& v) noexcept { return v.first == key; }
+        )};
+        if (it != end()) {
+            return {it, false};
+        }
+        else {
+            emplace_front(key, std::forward<Args>(args)...);
+            return {begin(), true};
+        }
+    }
+
+    template<typename... Args>
+    std::pair<iterator, bool> try_emplace(key_type&& key, Args&&... args)
+    {
+        auto const it{std::find_if(begin(), end(),
+            [&key=key](auto const& v) noexcept { return v.first == key; }
+        )};
+        if (it != end()) {
+            return {it, false};
+        }
+        else {
+            emplace_front(std::move(key), std::forward<Args>(args)...);
             return {begin(), true};
         }
     }
@@ -278,6 +318,19 @@ public:
     {
         erase_after(pos->node_);
         return iterator{pos->node_->next};
+    }
+
+    iterator erase(const_iterator pos) noexcept
+    {
+        auto pred{before_begin()};
+        auto it{begin()};
+        while (/* it != end() && */ it != pos) {
+            pred = it;
+            ++it;
+        }
+        JAM_ENSURE(it == pos, "Invalid erase position");
+        erase_after(pred.node_);
+        return iterator{++pred};
     }
 
 protected:
