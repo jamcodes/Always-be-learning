@@ -46,7 +46,10 @@ if(NOT asio_POPULATED)
         target_link_libraries(LearningASIO_asio INTERFACE ws2_32 wsock32)
         get_WIN32_WINNT(winnt_ver)
         message(STATUS "WIN32_WINNT version: ${winnt_ver}")
-        target_compile_definitions(LearningASIO_asio INTERFACE _WIN32_WINNT=${winnt_ver})
+        target_compile_definitions(LearningASIO_asio INTERFACE
+            _WIN32_WINNT=${winnt_ver}
+            ASIO_STANDALONE
+        )
     endif()
 
     install(
