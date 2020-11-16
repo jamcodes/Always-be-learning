@@ -37,5 +37,7 @@ target_compile_definitions(LearningASIO_CompilerConfig
 add_subdirectory(deps)
 add_subdirectory(utils)
 add_subdirectory(olc)
+add_subdirectory(timer)
+add_subdirectory(server_client)
 
 InstallProject(TARGETS LearningASIO_asio)
