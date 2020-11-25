@@ -39,5 +39,7 @@ add_subdirectory(utils)
 add_subdirectory(olc)
 add_subdirectory(timer)
 add_subdirectory(server_client)
+add_subdirectory(chat)
+
 
 InstallProject(TARGETS LearningASIO_asio)

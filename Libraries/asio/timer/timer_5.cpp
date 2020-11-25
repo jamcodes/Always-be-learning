@@ -18,8 +18,8 @@ public:
           timer1_{io, std::chrono::seconds{1}},
           timer2_{io, std::chrono::seconds{1}}
         {
-        // Note that the handler is not wrapped with asio::bind_executor that ties it to the strand.
-        // This has to be done for every all to async_wait
+        // Note that the handler is now wrapped with asio::bind_executor that ties it to the strand.
+        // This has to be done for every call to async_wait
             timer1_.async_wait(asio::bind_executor(strand_, [this](asio::error_code const& ec)noexcept{
                 if (!ec)
                     print1();
