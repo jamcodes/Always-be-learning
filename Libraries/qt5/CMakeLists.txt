@@ -1,19 +1,19 @@
 cmake_minimum_required(VERSION 3.15)
-project(LearningASIO VERSION 0.1.0)
+project(LearningQt5 VERSION 0.1.0)
 
 list(PREPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/cmake)
 include(options)
-DefineOptions(PREFIX LearningASIO)
+DefineOptions(PREFIX LearningQt5)
 include(project_settings)
 include(output_directories)
 include(release)
 
-set(LearningASIO_WERROR ON)
-set(LearningASIO_TESTS ON)
+set(LearningQt5_WERROR ON)
+set(LearningQt5_TESTS ON)
 ConfigureBuildType(DEFAULT Debug)
-ConfigureOutputDirectories(${LearningASIO_SOURCE_DIR})
+ConfigureOutputDirectories(${LearningQt5_BINARY_DIR})
 ConfigureGlobalFlags()
-DeclareCompilerConfigTarget(NAMESPACE LearningASIO TARGET CompilerConfig)
+DeclareCompilerConfigTarget(NAMESPACE LearningQt5 TARGET CompilerConfig)
 ConfigureProjectInstallDirectories()
 
 ShowOptions()
@@ -26,7 +26,7 @@ endif()
 if (NOT JAM_CONTRACT_LEVEL IN_LIST validAssertLevels)
     message(FATAL_ERROR "Invalid JAM_CONTRACT_LEVEL specified valid values = ${validAssertLevels}")
 endif()
-target_compile_definitions(LearningASIO_CompilerConfig
+target_compile_definitions(LearningQt5_CompilerConfig
     INTERFACE
         # Hardcode enabled asserts for now, in the future - configure based on the build type
         "JAM_CONTRACT_LEVEL=${JAM_CONTRACT_LEVEL}"
@@ -34,18 +34,16 @@ target_compile_definitions(LearningASIO_CompilerConfig
         $<IF:$<CONFIG:Debug>,DEBUG,NDEBUG>
 )
 
-find_package(Threads REQUIRED)
-target_link_libraries(LearningASIO_CompilerConfig
-    INTERFACE
-        Threads::Threads
-)
-
 add_subdirectory(deps)
 add_subdirectory(utils)
-add_subdirectory(olc)
-add_subdirectory(timer)
-add_subdirectory(server_client)
-add_subdirectory(chat)
+
+find_package(Qt5 5.15 REQUIRED
+    COMPONENTS
+        Core
+        Widgets
+)
+
+add_subdirectory(zetcode)
 
 
-InstallProject(TARGETS LearningASIO_asio)
+# InstallProject(TARGETS LearningQt5)

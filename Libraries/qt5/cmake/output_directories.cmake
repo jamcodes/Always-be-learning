@@ -1,0 +1,17 @@
+
+macro(ConfigureOutputDirectories root)
+include(GNUInstallDirs)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${root}/${CMAKE_INSTALL_BINDIR})
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${root}/${CMAKE_INSTALL_LIBDIR})
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${root}/${CMAKE_INSTALL_LIBDIR})
+
+    get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+    if(isMultiConfig)
+        foreach(cfg IN LISTS CMAKE_CONFIGURATION_TYPES)
+            string(TOUPPER ${cfg} cfgUpper)
+            set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${cfgUpper} ${root}/${cfg}/${CMAKE_INSTALL_BINDIR})
+            set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${cfgUpper} ${root}/${cfg}/${CMAKE_INSTALL_LIBDIR})
+            set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${cfgUpper} ${root}/${cfg}/${CMAKE_INSTALL_LIBDIR})
+        endforeach()
+    endif()
+endmacro()

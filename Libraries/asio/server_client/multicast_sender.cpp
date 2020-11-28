@@ -27,7 +27,6 @@ public:
 private:
     void do_send()
     {
-        fmt::format("Message {}", message_count_);
         ++message_count_;
         message_ = fmt::format("Message {}", message_count_);
 
