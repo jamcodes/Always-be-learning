@@ -16,6 +16,7 @@ function(zetcode_executable _name)
         PROPERTIES
             EXPORT_NAME ${_name}
             OUTPUT_NAME ${_name}
+            RUNTIME_OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROJECT_NAME}
     )
     target_link_libraries(${PROJECT_NAME}_${_name}
         PRIVATE
@@ -26,3 +27,5 @@ endfunction()
 
 add_subdirectory(Ch1_Intro)
 add_subdirectory(Ch2_Strings)
+add_subdirectory(Ch3_DateTime)
+add_subdirectory(Ch4_Containers)
