@@ -1,0 +1,10 @@
+cmake_minimum_required(VERSION 3.15)
+project(Zetcode_FirstApps)
+
+configure_file(kiwi.png ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROJECT_NAME}/kiwi.png COPYONLY)
+zetcode_executable(simple SOURCES simple.cpp LIBS Qt5::Core Qt5::Widgets)
+zetcode_executable(tooltip SOURCES tooltip.cpp LIBS Qt5::Core Qt5::Widgets)
+zetcode_executable(icon SOURCES icon.cpp LIBS Qt5::Core Qt5::Widgets)
+zetcode_executable(cursor SOURCES cursor.cpp LIBS Qt5::Core Qt5::Widgets)
+zetcode_executable(pushbutton SOURCES pushbutton.cpp LIBS Qt5::Core Qt5::Widgets)
+zetcode_executable(plusminus SOURCES plusminus.cpp LIBS Qt5::Core Qt5::Widgets AUTOMOC)
