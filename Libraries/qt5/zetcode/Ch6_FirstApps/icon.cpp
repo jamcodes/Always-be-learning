@@ -15,7 +15,7 @@ try {
     window.resize(250, 150);
     window.setWindowTitle("Icon");
     const auto icon_path{QCoreApplication::applicationDirPath() + "/kiwi.png"};
-    out << "app_path: " << icon_path << Qt::endl;
+    out << "icon_path: " << icon_path << Qt::endl;
 
     window.setWindowIcon(QIcon{icon_path});
     window.show();

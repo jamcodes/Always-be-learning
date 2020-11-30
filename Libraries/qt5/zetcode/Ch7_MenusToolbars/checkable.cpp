@@ -46,6 +46,7 @@ void Checkable::toggleStatusbar()
 {
     if (view_status_->isChecked()) {
         statusBar()->show();
+        statusBar()->showMessage("Hello!");
     }
     else {
         statusBar()->hide();

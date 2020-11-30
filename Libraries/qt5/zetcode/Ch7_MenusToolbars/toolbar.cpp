@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
 {
 try {
     QApplication app{argc, argv};
-    
+
     Toolbar window;
     window.resize(350, 200);
     window.setWindowTitle("Toolbar");
