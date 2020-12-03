@@ -49,7 +49,7 @@ function(CopyIfDifferent targetName_)
         list(APPEND outputs_ "${output_directory_}/${file_name_}")
     endforeach()
 
-    add_custom_command(OUTPUT ${outputs_})
+    add_custom_command(OUTPUT ${outputs_} COMMENT "")
     foreach(input_ output_ IN ZIP_LISTS arg_FILES outputs_)
         if(NOT arg_NO_DEPENDS)
             add_custom_command(OUTPUT ${outputs_}
