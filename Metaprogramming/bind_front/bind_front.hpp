@@ -7,7 +7,7 @@
 
 // C++20 implementation
 template<typename Function, typename... Args>
-constexpr auto bind_front_20(Function&& func, Args&&... args) noexcept
+constexpr decltype(auto) bind_front_20(Function&& func, Args&&... args) noexcept
 {
     return [f=std::forward<Function>(func)
            ,...bound_args=std::forward<Args>(args) ](auto&&... rest) noexcept(
@@ -39,7 +39,7 @@ public:
 
     template<typename... As>
     explicit BindFront(Function const& f, As&&... as)
-        noexcept(std::is_nothrow_constructible_v<Function, Function&&> &&
+        noexcept(std::is_nothrow_constructible_v<Function, Function const&> &&
                                 std::is_nothrow_constructible_v<std::tuple<Args...>, As&&...>)
     : f_{f}
     , bound_args_{std::forward<As>(as)...}
