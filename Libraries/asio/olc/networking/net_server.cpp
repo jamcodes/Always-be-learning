@@ -71,6 +71,6 @@ int main()
 
     while (true)
     {
-        server.update();
+        server.update(std::numeric_limits<std::size_t>::max(), true);
     }
 }

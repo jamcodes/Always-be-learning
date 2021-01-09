@@ -71,8 +71,8 @@ public:
                         connections_.push_back(std::move(newconn));
                         // assign ID to the connection
                         auto&& con{connections_.back()};
-                        con->connect_to_client(id_counter_++);
-                        std::cout << "[" << con->get_id() << "] Connection Approved\n";
+                        con->connect_to_client(this, id_counter_++);
+                        std::cout << "[" << con->get_id() << "] Connection Approved" << std::endl;
                     }
                     else
                     {
@@ -136,8 +136,10 @@ public:
 
     // allow the client to decide when it's the best time to handle incomming messages
     // calling this function will process the messages
-    void update(std::size_t max_messages = std::numeric_limits<std::size_t>::max())
+    void update(std::size_t max_messages = std::numeric_limits<std::size_t>::max(), bool wait = false)
     {
+        if (wait) { queue_in_.wait_for_data(); }
+
         for (std::size_t msg_count{0}; msg_count != max_messages && !queue_in_.empty(); ++msg_count)
         {
             // get the front message
@@ -145,6 +147,12 @@ public:
             // pass to message handler
             on_message(msg.remote, msg.msg);
         }
+    }
+
+public:
+    // called when a client is validated
+    virtual void on_client_validated(std::shared_ptr<connection<T>> /* client */)
+    {
     }
 
 protected:

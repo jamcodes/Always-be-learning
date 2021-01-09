@@ -9,6 +9,9 @@ namespace olc
 namespace net
 {
 
+// forward declaration
+template<typename T> class server_interface;
+
 template<typename T>
 class connection : public std::enable_shared_from_this<connection<T>>
 {
@@ -29,6 +32,20 @@ public:
           queue_in_{queue_in},
           owner_type_{parent}
     {
+        if (owner_type_ == owner::server)
+        {
+            // connection is server -> client, construct random data for the client
+            // to transform and send back for validation
+            handshake_out_ = static_cast<std::uint64_t>(std::chrono::system_clock::now().time_since_epoch().count());
+            // pre-calculated result for checking when the client responds
+            handshake_check_ = scramble(handshake_out_);
+        }
+        else
+        {
+            // connection is client -> server, there's nothing to define - wait for the server to initiate validation
+            handshake_in_ = 0;
+            handshake_out_ = 0;
+        }
     }
 
     ~connection() = default;
@@ -36,7 +53,7 @@ public:
     std::uint32_t get_id() const noexcept { return id_; }
 
 
-    void connect_to_client(std::uint32_t id)
+    void connect_to_client(olc::net::server_interface<T>* server, std::uint32_t id)
     {
         // servers connect to clients
         // contract/expectation - assert here instead?
@@ -45,7 +62,14 @@ public:
             if (socket_.is_open())
             {
                 id_ = id;
-                read_header();
+                // read_header();
+
+                // a client has attempted to connect to the server - we want to validate it
+                // send out the handshare data first
+                write_validation();
+
+                // wait for the validation data to be sent back from the client
+                read_validation(server);
             }
             else
             {
@@ -65,7 +89,11 @@ public:
                 {
                     if (!ec)
                     {
-                        read_header();
+                        // read_header();
+
+                        // the server validates the client
+                        // read the validation data
+                        read_validation();
                     }
                     else
                     {
@@ -223,6 +251,83 @@ protected:
         read_header();
     }
 
+    // ASYNC - used by both client and server to write validation packet
+    void write_validation()
+    {
+        asio::async_write(socket_, asio::buffer(&handshake_out_, sizeof(handshake_out_)),
+            [this](std::error_code ec, std::size_t /* length */)
+            {
+                if (!ec)
+                {
+                    // validation data sent - clients start attempting to read data now
+                    if (owner_type_ == owner::client)
+                    {
+                        read_header();
+                    }
+                }
+                else
+                {
+                    std::cerr << "[Connection] write validation failed: " << ec.message() << std::endl;
+                    socket_.close();
+                }
+            }
+        );
+    }
+
+    void read_validation(olc::net::server_interface<T>* server = nullptr)
+    {
+        asio::async_read(socket_, asio::buffer(&handshake_in_, sizeof(handshake_in_)),
+            [this, server](std::error_code ec, std::size_t /* length */)
+            {
+                if (!ec)
+                {
+                    if (owner_type_ == owner::server)
+                    {
+                        // expect the response from a client
+                        // needs to match the precalculated result
+                        if (handshake_in_ == handshake_check_)
+                        {
+                            // client responded with a valid solution
+                            std::cout << "[Connection] Client validated" << std::endl;
+                            server->on_client_validated(this->shared_from_this());
+
+                            // move on to reading the data
+                            read_header();
+                        }
+                        else
+                        {
+                            // client responded with incorrect data - refuse connection
+                            std::cout << "[Connection] Client validation failed, connection refused" << std::endl;
+                            socket_.close();
+                            // we could track missbehaving clients, maybe blacklist them
+                        }
+                    }
+                    else
+                    {
+                        // expect random data from the server
+                        // encrypt it
+                        handshake_out_ = scramble(handshake_in_);
+                        // and send it back to the server
+                        write_validation();
+                    }
+                }
+                else
+                {
+                    std::cerr << "[Connection] read validation - read failure: " << ec.message() << std::endl;
+                    socket_.close();
+                }
+            }
+        );
+    }
+
+    // ad-hoc "encryption" of data
+    static constexpr std::uint64_t scramble(std::uint64_t input) noexcept
+    {
+        std::uint64_t out{input ^ 0xDEADBEEFC0DECAFE};
+        out = (out & 0xF0F0F0F0F0F0F0) >> 4 | (out & 0x0F0F0F0F0F0F0F) << 4;
+        return out ^ 0xC0DEFACE12345678;
+    }
+
 // --- member data
     // each connection has a unique socket to a remote
     asio::ip::tcp::socket socket_{};
@@ -240,6 +345,10 @@ protected:
 
     message<T> msg_temp_in_{};
     message<T> msg_temp_out_{};
+
+    std::uint64_t handshake_out_{0};
+    std::uint64_t handshake_in_{0};
+    std::uint64_t handshake_check_{0};
 };
 
 } // namespace net

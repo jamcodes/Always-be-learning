@@ -89,7 +89,7 @@ int main()
                 Ops const command{op.exchange(static_cast<std::uint32_t>(Ops::Idle))};
                 if (command == Ops::Ping) { client.ping_server(); }
                 if (command == Ops::All) { client.message_all(); }
-                if (command == Ops::Quit) { quit = true; }
+                if (command == Ops::Quit) { quit = true; break; }
                 if (client.is_connected())
                 {
                     if (!client.incomming().empty())
@@ -145,6 +145,8 @@ int main()
         }
         if (line == "quit") {
             op.store(static_cast<std::uint32_t>(Ops::Quit));
+            std::cerr << "exiting..." << std::endl;
+            break;
         }
     }
 
