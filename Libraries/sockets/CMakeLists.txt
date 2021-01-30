@@ -11,7 +11,7 @@ include(release)
 set(LearningSockets_WERROR ON)
 set(LearningSockets_TESTS ON)
 ConfigureBuildType(DEFAULT Debug)
-ConfigureOutputDirectories(${LearningSockets_SOURCE_DIR})
+ConfigureOutputDirectories(${LearningSockets_BINARY_DIR})
 ConfigureGlobalFlags()
 DeclareCompilerConfigTarget(NAMESPACE LearningSockets TARGET CompilerConfig)
 ConfigureProjectInstallDirectories()
@@ -42,6 +42,6 @@ target_link_libraries(LearningSockets_CompilerConfig
 
 add_subdirectory(deps)
 add_subdirectory(utils)
-
+add_subdirectory(low_level)
 
 # InstallProject(TARGETS LearningSockets_Sockets)

@@ -3,20 +3,20 @@
 ## Types of sockets
 
 * Raw sockets - TODO
-* Stream sockets - SOCK_STREAM
+* Stream sockets - `SOCK_STREAM`
   - Two-way connected communication stream - uses TCP (Transmission Control Protocol)
   - Used by telnet, http
-* Datagram sockets - SOCK_DGRAM
+* Datagram sockets - `SOCK_DGRAM`
   - Connectionless sockets - UDP (User Datagram Protocol)
   - Usually applications using UDP implement their own protocol
     on top of UDP to guarantee that all packets sent are received,
     i.e. they require some kind of ACK on the receiving and and will keep
-    recending the packet until they get back the acknowledgement.
+    resending the packet until they get back the acknowledgement.
 
 
 ## Structures
 
-socket descriptor - int
+socket descriptor - `int`
 
 `struct addrinfo` - used to prep the socket structures for subsequent use, host name lookup, service name lookup
 - loaded up with `getaddrinfo()`
@@ -24,7 +24,7 @@ socket descriptor - int
 struct addrinfo
 {
   int              ai_flags;     // AI_PASSIVE, AI_CANONNAME, etc.
-  int              ai_family;    // AF_INET, AF_INET6, AF_UNSPEC
+  int              ai_family;    // AF_INET, AF_INET6, AF_UNSPEC, set AF_UNSPEC to support both ipv4 and ipv6
   int              ai_socktype;  // SOCK_STREAM, SOCK_DGRAM
   int              ai_protocol;  // use 0 for "any"
   size_t           ai_addrlen;   // size of ai_addr in bytes
@@ -39,7 +39,7 @@ struct addrinfo
 ```C++
 struct sockaddr {
   unsigned short    sa_family;    // address family, AF_xxx
-  char              sa_data[14];  // 14 bytes of protocol address
+  char              sa_data[14];  // 14 bytes of protocol address; i.e. address in string format
 };
 ```
 
@@ -76,6 +76,7 @@ struct in6_addr {
 ```
 
 `sockaddr_storage` - large enough to hold IPv4 and IPv6, can be cast to either at runtime.
+Check ss_family for either `AF_INET` or `AF_INET6`, then cast to `sockaddr_in` or `sockaddr_in6`
 ```C++
 struct sockaddr_storage {
   sa_family_t  ss_family;     // address family
@@ -85,4 +86,130 @@ struct sockaddr_storage {
   int64_t   __ss_align;
   char      __ss_pad2[_SS_PAD2SIZE];
 };
+```
+
+## IP addresses and getting them into/out of structures
+
+Given an IP in string format - "10.12.110.57", or "2001:db8:63b3:1::3490", to store it into
+`struct in_addr` or `struct in_addr6` can be done with `inet_pton()`.
+`pton` stands for "presentation to network"
+
+```C++
+struct sockaddr_in sa;
+struct sockaddr_in6 sa6;
+
+// missing error-handling, returns -1 on error, 0 if the address is invalid, and >0 for success
+inet_pton(AF_INET, "10.12.110.57", &(sa.sin_addr));
+inet_pton(AF_INET6, "2001:db8:63b3:1::3490", &(sa6.sin6_addr));
+```
+
+To convert from binary reprasentation into string format use `inet_ntop()`.
+`ntop` stands for "network to presentation"
+
+```C++
+char ip4[INET_ADDRSTRLEN];    // space to hold a IPV4 string
+struct sockaddr_in sa;        // assume this is loaded with data
+
+inet_ntop(AF_INET, &(sa.sin_addr), ip4, INET_ADDRSTRLEN);
+print("The IPV4 address is: %s\n", ip4);
+
+// IPV6
+char ip6[INET6_ADDRSTRLEN];   // space to hold IPV6 string
+struct sockaddr_in6 sa6;      // assume this is loaded with data
+
+inet_ntop(AF_INET6, &(sa6.sin6_addr), ip6, INET6_ADDRSTRLEN);
+
+printf("The address is: %s\n", ip6);
+```
+
+
+## NAT - Network Address Translation
+Done when a local network is hidden behind a firewall for purposes of protection. Translates an "internal" IP to "external" IP, that's recognisable in the world.
+
+
+## getaddrinfo()
+
+```C++
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+
+int getaddrinfo(const char *node,     // e.g. "www.example.com" or IP
+                const char *service,  // name of the service e.g. "http", or the port number
+                const struct addrinfo *hints, // addrinfo filled with data
+                struct addrinfo **res);
+```
+
+Setup for a server that listens on localhost port 3490
+```C++
+int status;
+struct addrinfo hints;
+struct addrinfo *servinfo;        // will point to the results
+
+memset(&hints, 0, sizeof hints);  // make sure the struct is empty
+hints.ai_family = AF_UNSPEC;      // don't care IPv4 or IPv6
+hints.ai_socktype = SOCK_STREAM;  // TCP stream sockets
+hints.ai_flags = AI_PASSIVE;      // fill in my IP for me
+
+if ((status = getaddrinfo(nullptr, "3490", &hints, &servinfo)) != 0) {
+    fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
+    exit(1);
+}
+
+// servinfo now points to a linked list of 1 or more struct addrinfos
+
+// ... do everything until you don't need servinfo anymore ....
+
+freeaddrinfo(servinfo); // free the linked-list
+```
+
+Setup for a client that wants to connecto to a particular server on a port
+```C++
+int status;
+struct addrinfo hints;
+struct addrinfo *servinfo;        // will point to the results
+
+memset(&hints, 0, sizeof hints);  // make sure the struct is empty
+hints.ai_family = AF_UNSPEC;      // don't care IPv4 or IPv6
+hints.ai_socktype = SOCK_STREAM;  // TCP stream sockets
+
+// get ready to connect
+status = getaddrinfo("www.example.net", "3490", &hints, &servinfo);
+
+// servinfo now points to a linked list of 1 or more struct addrinfos
+
+// etc.
+```
+
+
+## Sockets
+
+```C++
+#include <sys/types.h>
+#include <sys/socket.h>
+
+int socket(int domain, int type, int protocol); 
+
+// domain - PF_INET, or PF_INET6
+// type - SOCK_STREAM, or SOCK_DGRAM
+// protocol - `0` to choose the proper protocol for the given type, or getprotobyname() to lookup the protocol
+//            you want explicitly - "tcp" or "udp"
+```
+
+This data should be filled in from the call to getaddrinfo().
+`socket` returns a socket descriptor or -1 on error;
+```C++
+int s;
+struct addrinfo hints, *res;
+
+// do the lookup
+// [pretend we already filled out the "hints" struct]
+getaddrinfo("www.example.com", "http", &hints, &res);
+
+// again, you should do error-checking on getaddrinfo(), and walk
+// the "res" linked list looking for valid entries instead of just
+// assuming the first one is good (like many of these examples do).
+// See the section on client/server for real examples.
+
+s = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 ```
