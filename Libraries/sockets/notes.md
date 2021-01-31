@@ -213,3 +213,162 @@ getaddrinfo("www.example.com", "http", &hints, &res);
 
 s = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 ```
+
+`bind()` system call
+- associates socket wiht a port,
+- commonly done for servers that will `listen()` for incomming connections on a port
+
+```C++
+#include <sys/types.h>
+#include <sys/socket.h>
+
+int bind(int sockfd, struct sockaddr *my_addr, int addrlen);
+```
+
+Creating a socket and binding it to a port
+```C++
+struct addrinfo hints, *res;
+
+// first, load up address structs with getaddrinfo():
+
+memset(&hints, 0, sizeof hints);
+hints.ai_family = AF_UNSPEC;  // use IPv4 or IPv6, whichever
+hints.ai_socktype = SOCK_STREAM;
+hints.ai_flags = AI_PASSIVE;     // fill in my IP for me
+
+// nullptr is used in combination with AI_PASSIVE to automatically infer the local address
+// Alternatively the address could be passed in here directly
+getaddrinfo(nullptr, "3490", &hints, &res);
+
+// make a socket:
+
+int sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+
+// bind it to the port we passed in to getaddrinfo():
+
+bind(sockfd, res->ai_addr, res->ai_addrlen);
+```
+
+If `bind()` fails with a "Address already in use" it's likely due to a socket left open in the kernel.
+As long as there's no connection open it will clear up in ~minute.
+It might be better to add the code to allow your program to reuse the socket
+
+```C++
+int yes=1;
+//char yes='1'; // Solaris people use this
+
+// lose the pesky "Address already in use" error message
+if (setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) {
+    perror("setsockopt");
+    exit(1);
+} 
+```
+
+
+`connect()` is used to connecto to an address on a port via a socket.
+```C++
+#include <sys/types.h>
+#include <sys/socket.h>
+
+int connect(int sockfd, struct sockaddr *serv_addr, int addrlen); 
+```
+
+Example of connecting to an address on port 3490
+```C++
+struct addrinfo hints, *res;
+
+// first, load up address structs with getaddrinfo():
+
+memset(&hints, 0, sizeof hints);
+hints.ai_family = AF_UNSPEC;
+hints.ai_socktype = SOCK_STREAM;
+
+getaddrinfo("www.example.com", "3490", &hints, &res);
+
+// make a socket:
+
+int sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+
+// connect!
+
+connect(sockfd, res->ai_addr, res->ai_addrlen);
+```
+
+
+`listen()` - wait for incomming connections
+```C++
+int listen(int sockfd, int backlog);
+```
+`backlog` is a number of incomming connections allowed to wait until they're `accept()`'ed. This is likely ~20 by default, and should be possible to set lower to 5-10.
+
+
+`accept()` - processes a pending connection, returning a new socket descriptor that can be `send()` and `recv()` on
+```C++
+#include <sys/types.h>
+#include <sys/socket.h>
+
+int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen); 
+```
+
+Complete `listen()` - `accept()` example (no error handling though)
+```C++
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+
+#define MYPORT "3490"  // the port users will be connecting to
+#define BACKLOG 10     // how many pending connections queue will hold
+
+int main(void)
+{
+struct sockaddr_storage their_addr;
+socklen_t addr_size;
+struct addrinfo hints, *res;
+
+// !! don't forget your error checking for these calls !!
+
+// first, load up address structs with getaddrinfo():
+
+memset(&hints, 0, sizeof hints);
+hints.ai_family = AF_UNSPEC;  // use IPv4 or IPv6, whichever
+hints.ai_socktype = SOCK_STREAM;
+hints.ai_flags = AI_PASSIVE;     // fill in my IP for me
+
+getaddrinfo(NULL, MYPORT, &hints, &res);
+
+// make a socket, bind it, and listen on it:
+
+int sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+bind(sockfd, res->ai_addr, res->ai_addrlen);
+listen(sockfd, BACKLOG);
+
+// now accept an incoming connection:
+
+addr_size = sizeof their_addr;
+int new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
+
+// ready to communicate on socket descriptor new_fd!
+```
+
+## `send()` and `recv()`
+Communication over stream sockets or connected datagram sockets.
+
+```C++
+int send(int sockfd, const void *msg, int len, int flags);
+const char *msg = "Hello, Sockets!";
+int len = strlen(msg);
+int bytes_sent = send(sockfd, msg, len, 0);
+```
+- send data `msg` of length `len` to the socket descriptor `sockfd`
+- returns the number of bytes actually sent - this may be less than requested. In such a case the remainder needs to
+  be handled and sent later.
+
+
+```C++
+int recv(int sockfd, void *buf, int len, int flags);
+```
+- reads data from socket `sockfd` into buffer `buf`, at most length `len`
+- returns the number of bytes received
+  - -1 on error
+  - 0 if the other end has closed the connection
