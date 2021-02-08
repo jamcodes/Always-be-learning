@@ -29,3 +29,7 @@ endfunction()
 # ---------------------------------------------------------------------------------------------------------------------
 
 low_level_executable(showip SOURCES showip.cpp)
+low_level_executable(hello_server SOURCES hello_server.cpp)
+low_level_executable(hello_client SOURCES hello_client.cpp)
+low_level_executable(dgram_listener SOURCES dgram_listener.cpp)
+low_level_executable(dgram_talker SOURCES dgram_talker.cpp)

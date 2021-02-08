@@ -163,7 +163,7 @@ if ((status = getaddrinfo(nullptr, "3490", &hints, &servinfo)) != 0) {
 freeaddrinfo(servinfo); // free the linked-list
 ```
 
-Setup for a client that wants to connecto to a particular server on a port
+Setup for a client that wants to connect to a particular server on a port
 ```C++
 int status;
 struct addrinfo hints;
@@ -215,7 +215,7 @@ s = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 ```
 
 `bind()` system call
-- associates socket wiht a port,
+- associates socket with a port,
 - commonly done for servers that will `listen()` for incomming connections on a port
 
 ```C++
@@ -265,7 +265,7 @@ if (setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) {
 ```
 
 
-`connect()` is used to connecto to an address on a port via a socket.
+`connect()` is used to connect to an address on a port via a socket.
 ```C++
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -322,8 +322,6 @@ Complete `listen()` - `accept()` example (no error handling though)
 
 int main(void)
 {
-struct sockaddr_storage their_addr;
-socklen_t addr_size;
 struct addrinfo hints, *res;
 
 // !! don't forget your error checking for these calls !!
@@ -335,7 +333,7 @@ hints.ai_family = AF_UNSPEC;  // use IPv4 or IPv6, whichever
 hints.ai_socktype = SOCK_STREAM;
 hints.ai_flags = AI_PASSIVE;     // fill in my IP for me
 
-getaddrinfo(NULL, MYPORT, &hints, &res);
+getaddrinfo(nullptr, MYPORT, &hints, &res);
 
 // make a socket, bind it, and listen on it:
 
@@ -344,8 +342,8 @@ bind(sockfd, res->ai_addr, res->ai_addrlen);
 listen(sockfd, BACKLOG);
 
 // now accept an incoming connection:
-
-addr_size = sizeof their_addr;
+struct sockaddr_storage their_addr;
+socklen_t addr_size = sizeof(their_addr);
 int new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
 
 // ready to communicate on socket descriptor new_fd!
@@ -372,3 +370,51 @@ int recv(int sockfd, void *buf, int len, int flags);
 - returns the number of bytes received
   - -1 on error
   - 0 if the other end has closed the connection
+
+
+## `sendto()` and `recvfrom()`
+
+Datagram sockets aren't connected to a remote host so it's necessary to pass in the destination address everytime we send something.
+```C++
+int sendto(int sockfd, const void *msg, int len, unsigned int flags, const struct sockaddr *to, socklen_t tolen); 
+```
+It returns the number of bytes actually sent, or -1 on error.
+
+
+```C++
+int recvfrom(int sockfd, void *buf, int len, unsigned int flags, struct sockaddr *from, int *fromlen); 
+```
+Note that `from` should be a pointer to a local `sockaddr_storage`, rather than just `sockaddr`, in order not to tie ourselves to one type of IP address.
+
+## `close()` and `shutdown()`
+
+To close a socket descriptor just use `close(sockfd)`. This will close the socket for both reading and writing.
+
+`shutdown()` gives a little more control over how the socket is closed.
+```C++
+int shutdown(int sockfd, int how); 
+// how == 0 -> further receives disallowed
+// how == 1 -> further sends disallowed
+// how == 2 -> further sends and receives disallowed - just like close()
+```
+To actually free the socket descriptor `close()` needs to be used.
+On Windows using Winsock use `closesocket()`.
+
+
+## `getpeername()`
+Fetches information about the other end of the connection
+```C++
+#include <sys/socket.h>
+    
+int getpeername(int sockfd, struct sockaddr *addr, int *addrlen); 
+```
+`addr` is a pointer to `sockaddr` or `sockaddr_in` that will hold the information about the other end of the connection.
+
+## `gethostname()`
+
+Returns the name of the machine it is executed on.
+```C++
+#include <unistd.h>
+
+int gethostname(char *hostname, size_t size); 
+```
