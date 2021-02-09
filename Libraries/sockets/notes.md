@@ -418,3 +418,45 @@ Returns the name of the machine it is executed on.
 
 int gethostname(char *hostname, size_t size); 
 ```
+
+
+## Blocking/nonblocking socket configuration
+
+Sockets are blocking by default. This means that operations that rely on the other end of connection might block/wait/sleep until the other end provides the data, this concerns listen, connect, recv, recvfrom, etc.
+
+To make a socket non-blocking it can be configured using fcntl():
+```C++
+#include <unistd.h>
+#include <fcntl.h>
+
+auto sockfd = socket(PF_INET, SOCK_STREAN, 0);
+fcntl(sockfd, F_SETFL, O_NONBLOCK);
+```
+
+This allows for "polling" the socket. If an otherwise blocking operation is called it will return -1 and errno will
+be set to EAGAIN or EWOULDBLOCK - check both for portability.
+
+This kind of busy-wait is generally a bad idea though.
+
+
+## Poll - synchronous I/O multiplexing
+
+The poll() system call allows for monitoring a bunch of sockets and handle the ones that have data ready efficiently
+(this might actually not be efficient for very large numbers of sockets, see select() for an alternative, or something
+like libevent).
+
+```C++
+#include <poll.h>
+    
+int poll(struct pollfd fds[], nfds_t nfds, int timeout);
+
+// pollfd is:
+struct pollfd {
+    int fd;         // the socket descriptor
+    short events;   // bitmap of events we're interested in
+    short revents;  // when poll() returns, bitmap of events that occurred
+};
+
+// POLLIN 	Alert me when data is ready to recv() on this socket.
+// POLLOUT 	Alert me when I can send() data to this socket without blocking.
+```
