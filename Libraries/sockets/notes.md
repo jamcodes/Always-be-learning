@@ -442,8 +442,7 @@ This kind of busy-wait is generally a bad idea though.
 ## Poll - synchronous I/O multiplexing
 
 The poll() system call allows for monitoring a bunch of sockets and handle the ones that have data ready efficiently
-(this might actually not be efficient for very large numbers of sockets, see select() for an alternative, or something
-like libevent).
+(this might actually not be efficient for very large numbers of sockets, see a library like libevent for an alternative).
 
 ```C++
 #include <poll.h>
@@ -457,6 +456,34 @@ struct pollfd {
     short revents;  // when poll() returns, bitmap of events that occurred
 };
 
+// events is a bitmap of:
 // POLLIN 	Alert me when data is ready to recv() on this socket.
 // POLLOUT 	Alert me when I can send() data to this socket without blocking.
+```
+
+## Select - alternative to poll()
+
+The select() system call is a little older and possible more portable, but can be just as slow or slower than poll(),
+depending on the operating system. It can monitor several sockets at the same time, giving information about which are
+ready to read, write, which raised exceptions, etc.
+
+```C++
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+int select(int numfds, fd_set *readfds, fd_set *writefds,
+            fd_set *exceptfds, struct timeval *timeout); 
+// numfds - should be set to the value of the highest descriptor value + 1
+// readfds - should contain the file descriptors you want to monitor for reading
+// writefds - same as above, but for writing
+// exceptfds - same as above, but for exceptions
+// timeout - well, timeout; set to nullptr to wait forever;
+//           fill timeval with 0 to timeout immediately and effectively poll
+
+// The passed in fs_set's will be modified to reflect the readiness of descriptors. Check them with macros
+// FD_SET   -- add fd to the set
+// FD_CLR   -- remove fd from set
+// FD_ISSET -- check if fd is in the set
+// FD_ZERO  -- clear the set
 ```

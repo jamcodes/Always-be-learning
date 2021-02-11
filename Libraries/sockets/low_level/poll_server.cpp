@@ -19,6 +19,23 @@ namespace {
 constexpr const char* Port{"9034"};  // Port we're listening on
 }  // namespace
 
+// keey trying untill all requested bytes are sent
+int sendall(int sd, char* buf, ssize_t* len)
+{
+    ssize_t total{0};
+    while (total < *len)
+    {
+        const auto n = send(sd, buf + total, static_cast<std::size_t>(*len - total), 0);
+        if (n == -1) {
+            *len = total;
+            return -1;
+        }
+        total += n;
+    }
+    *len = total;
+    return 0;
+}
+
 // get sockaddr, IPv4, IPv6
 void* get_in_addr(sockaddr* sa)
 {
@@ -175,7 +192,7 @@ int main()
                             // except the listener and ourselves
                             if (dest_fd != listener && dest_fd != sender_fd)
                             {
-                                if (send(dest_fd, buf, static_cast<std::size_t>(nbytes), 0) == -1)
+                                if (sendall(dest_fd, buf, &nbytes) == -1)
                                 {
                                     fmt::print(stderr, "[poll server] send error {}\n", std::strerror(errno));
                                 }
