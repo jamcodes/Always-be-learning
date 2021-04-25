@@ -43,3 +43,4 @@ target_compile_options(LearningSockets_low_level_float_serialization
         -Wno-error=conversion
         -Wno-error=float-conversion
 )
+low_level_executable(dgram_broadcaster SOURCES dgram_broadcaster.cpp)

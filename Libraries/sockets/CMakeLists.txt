@@ -43,5 +43,6 @@ target_link_libraries(LearningSockets_CompilerConfig
 add_subdirectory(deps)
 add_subdirectory(utils)
 add_subdirectory(low_level)
+add_subdirectory(codility)
 
 # InstallProject(TARGETS LearningSockets_Sockets)
